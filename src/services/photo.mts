@@ -61,7 +61,7 @@ export class PhotoService {
         return Sync.query().modify(Sync.modifiers.findByCriminalId, id).delete();
     }
 
-    public async downloadPhoto(attID: number): Promise<[Buffer, string] | [null, null]> {
+    public async downloadPhoto(attID: number): Promise<[ArrayBuffer, string] | [null, null]> {
         const entry = await CriminalAttachment.query()
             .modify(CriminalAttachment.modifiers.byAttachmentId, attID)
             .modify(CriminalAttachment.modifiers.onlyImages)
@@ -72,7 +72,7 @@ export class PhotoService {
             const url = new URL(`${this.baseURL}${entry.path}`);
             const response = await this.fetch(url.href);
             if (response.ok) {
-                return [await response.buffer(), entry.mime_type];
+                return [await response.arrayBuffer(), entry.mime_type];
             }
         }
 
@@ -99,7 +99,7 @@ export class PhotoService {
             if (row.flag === SyncFlag.ADD_PHOTO) {
                 const response = await this.fetch(`${this.baseURL}${row.path}`);
                 if (response.ok) {
-                    const image = await response.buffer();
+                    const image = await response.arrayBuffer();
                     const converted = await PhotoService.toFaceXFormat(image);
                     result.image = converted ? converted.toString('base64') : '';
                 }
@@ -123,7 +123,7 @@ export class PhotoService {
             });
     }
 
-    protected static async toFaceXFormat(photo: Buffer): Promise<Buffer | null> {
+    protected static async toFaceXFormat(photo: ArrayBuffer): Promise<Buffer | null> {
         let img: Sharp;
         let metadata: Metadata;
 
