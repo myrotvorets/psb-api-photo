@@ -1,0 +1,24 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "noEmitOnError": true,
+        "outDir": "./dist",
+        "rootDirs": ["src", "test"],
+        "sourceMap": true,
+        "declaration": false,
+        "removeComments": false,
+        "strict": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": false,
+        "noFallthroughCasesInSwitch": true,
+        "esModuleInterop": true,
+        "resolveJsonModule": true
+    },
+    "compileOnSave": true,
+    "ts-node": {
+        "esm": true,
+        "transpileOnly": true
+    }
+}
