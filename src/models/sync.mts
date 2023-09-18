@@ -19,18 +19,15 @@ export class Sync extends Model {
     public static modifiers: Modifiers<QueryBuilder<Model>> = {
         getPhotoToSync(builder): void {
             const { ref } = Sync;
-            // eslint-disable-next-line no-void
             void builder.where(ref('flag'), '<', SyncFlag.FAILED_ADD).orderBy(ref('id')).limit(1);
         },
         findByCriminalId(builder, cid: number): void {
             const { ref } = Sync;
-            // eslint-disable-next-line no-void
             void builder.where(ref('criminal_id'), cid);
         },
         getCriminalsToSync(builder, after: number): void {
             const { ref } = Sync;
             const cidField = ref('criminal_id');
-            // eslint-disable-next-line no-void
             void builder.distinct(cidField).where(cidField, '>', after).orderBy(cidField, 'asc');
         },
     };

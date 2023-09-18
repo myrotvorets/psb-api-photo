@@ -1,6 +1,7 @@
 /* eslint-disable import/no-named-as-default-member */
-import { after, afterEach, before, describe, it } from 'mocha';
+import { after, afterEach, before, beforeEach, describe, it } from 'mocha';
 import { expect } from 'chai';
+import * as td from 'testdouble';
 import fetch from 'node-fetch';
 import * as knexpkg from 'knex';
 import mockKnex from 'mock-knex';
@@ -8,6 +9,7 @@ import nock from 'nock';
 import { Model } from 'objection';
 import { buildKnexConfig } from '../../../src/knexfile.mjs';
 import { PhotoService } from '../../../src/services/photo.mjs';
+import { SyncFlag } from '../../../src/models/sync.mjs';
 
 describe('PhotoService', () => {
     let db: knexpkg.Knex;
@@ -132,6 +134,254 @@ describe('PhotoService', () => {
 
             const expected = [new Uint8Array(Buffer.from(httpResponse)).buffer, dbResponse[0].mime_type];
             return expect(svc.downloadPhoto(attachmentID)).to.become(expected);
+        });
+    });
+
+    describe('#downloadPhotoForFaceX', () => {
+        const metadataMock = td.function();
+        const toBufferMock = td.function();
+        const jpegMock = td.function();
+
+        let service: typeof import('../../../src/services/photo.mjs');
+
+        beforeEach(async () => {
+            await td.replaceEsm('sharp', {
+                default: () => ({
+                    metadata: metadataMock,
+                    jpeg: jpegMock,
+                    toBuffer: toBufferMock,
+                }),
+            });
+
+            service = await import('../../../src/services/photo.mjs');
+        });
+
+        it('should handle non-existing IDs', () => {
+            const baseURL = 'https://localhost/';
+            const attachmentID = 456;
+
+            const tracker = mockKnex.getTracker();
+            tracker.on('query', (query, step) => {
+                expect(step).to.equal(1);
+                expect(query)
+                    .to.be.an('object')
+                    .and.containSubset({ method: 'select', bindings: ['image/%', attachmentID] });
+                query.response([]);
+            });
+            tracker.install();
+
+            const svc = new PhotoService(baseURL, fetch);
+
+            const expected = null;
+            return expect(svc.downloadPhotoForFaceX(attachmentID)).to.become(expected);
+        });
+
+        const table = [
+            [{ format: 'jpeg', chromaSubsampling: '4:2:0', isProgressive: false }, 0],
+            [{ format: 'jpeg', chromaSubsampling: '4:2:0', isProgressive: true }, 1],
+        ] as const;
+
+        table.forEach(([metadata, jpegCalls]) => {
+            it(`should return the photo (${JSON.stringify(metadata)})`, async () => {
+                const baseURL = 'https://localhost/';
+                const attachmentID = 123;
+                const dbResponse = [{ att_id: 1, path: 'criminal/00/00/7b/xxx.jpg', mime_type: 'image/jpeg' }];
+                const httpResponse = 'test';
+
+                const tracker = mockKnex.getTracker();
+                tracker.on('query', (query, step) => {
+                    expect(step).to.equal(1);
+                    query.response(dbResponse);
+                });
+                tracker.install();
+
+                const svc = new service.PhotoService(baseURL, fetch);
+
+                nock(`${baseURL}`).get(`/${dbResponse[0].path}`).reply(200, httpResponse);
+
+                const expected = Buffer.from(httpResponse);
+                td.when(metadataMock()).thenResolve(metadata);
+                td.when(toBufferMock()).thenResolve(expected);
+
+                const actual = await svc.downloadPhotoForFaceX(attachmentID);
+                expect(actual).to.deep.equal(expected);
+                td.verify(jpegMock(td.matchers.anything()), { times: jpegCalls });
+            });
+        });
+
+        it('should return null on failure', async () => {
+            const baseURL = 'https://localhost/';
+            const attachmentID = 123;
+            const dbResponse = [{ att_id: 1, path: 'criminal/00/00/7b/xxx.jpg', mime_type: 'image/jpeg' }];
+            const httpResponse = 'test';
+
+            const tracker = mockKnex.getTracker();
+            tracker.on('query', (query, step) => {
+                expect(step).to.equal(1);
+                query.response(dbResponse);
+            });
+            tracker.install();
+
+            const svc = new service.PhotoService(baseURL, fetch);
+
+            nock(`${baseURL}`).get(`/${dbResponse[0].path}`).reply(200, httpResponse);
+
+            td.when(metadataMock()).thenReject(new Error('test'));
+
+            const expected = null;
+            const actual = await svc.downloadPhotoForFaceX(attachmentID);
+            expect(actual).to.equal(expected);
+
+            td.verify(toBufferMock(td.matchers.anything()), { times: 0 });
+            td.verify(jpegMock(td.matchers.anything()), { times: 0 });
+        });
+    });
+
+    describe('#getPhotoToSync', () => {
+        const baseURL = 'https://localhost/';
+
+        const checkQuery = (query: mockKnex.QueryDetails, step: number): void => {
+            expect(step).to.equal(1);
+            expect(query)
+                .to.be.an('object')
+                .and.containSubset({ method: 'select', bindings: [SyncFlag.FAILED_ADD, 1] });
+        };
+
+        it('should handle empty queue', () => {
+            const tracker = mockKnex.getTracker();
+            tracker.on('query', (query, step) => {
+                checkQuery(query, step);
+                query.response([]);
+            });
+            tracker.install();
+
+            const svc = new PhotoService(baseURL, fetch);
+
+            const expected = null;
+            return expect(svc.getPhotoToSync()).to.become(expected);
+        });
+
+        it('should return DEL_PHOTO entries as is', () => {
+            const dbResponse = [{ id: 1, att_id: 2, criminal_id: 3, path: 'test', flag: SyncFlag.DEL_PHOTO }];
+
+            const tracker = mockKnex.getTracker();
+            tracker.on('query', (query, step) => {
+                checkQuery(query, step);
+                query.response(dbResponse);
+            });
+            tracker.install();
+
+            const svc = new PhotoService(baseURL, fetch);
+
+            const expected = {
+                id: dbResponse[0].id,
+                att_id: dbResponse[0].att_id,
+                suspect_id: dbResponse[0].criminal_id,
+                path: dbResponse[0].path,
+                flag: dbResponse[0].flag,
+                image: '',
+            };
+
+            return expect(svc.getPhotoToSync()).to.become(expected);
+        });
+
+        describe('ADD_PHOTO processing', () => {
+            const metadataMock = td.function();
+            const toBufferMock = td.function();
+            const jpegMock = td.function();
+
+            let service: typeof import('../../../src/services/photo.mjs');
+            let svc: PhotoService;
+
+            const httpResponse = 'test';
+            const dbResponse = [
+                { id: 1, att_id: 2, criminal_id: 3, path: 'criminal/00/00/7b/xxx.jpg', flag: SyncFlag.ADD_PHOTO },
+            ];
+
+            beforeEach(async () => {
+                td.when(metadataMock()).thenResolve({
+                    format: 'jpeg',
+                    chromaSubsampling: '4:2:0',
+                    isProgressive: false,
+                });
+
+                await td.replaceEsm('sharp', {
+                    default: () => ({
+                        metadata: metadataMock,
+                        toBuffer: toBufferMock,
+                        jpeg: jpegMock,
+                    }),
+                });
+
+                service = await import('../../../src/services/photo.mjs');
+
+                const tracker = mockKnex.getTracker();
+                tracker.on('query', (query, step) => {
+                    checkQuery(query, step);
+                    query.response(dbResponse);
+                });
+                tracker.install();
+
+                svc = new service.PhotoService(baseURL, fetch);
+            });
+
+            it('should download the image', async () => {
+                nock(`${baseURL}`).get(`/${dbResponse[0].path}`).reply(200, httpResponse);
+                td.when(toBufferMock()).thenResolve(Buffer.from(httpResponse));
+
+                const expected = {
+                    id: dbResponse[0].id,
+                    att_id: dbResponse[0].att_id,
+                    suspect_id: dbResponse[0].criminal_id,
+                    path: dbResponse[0].path,
+                    flag: dbResponse[0].flag,
+                    image: Buffer.from(httpResponse).toString('base64'),
+                };
+
+                const actual = await svc.getPhotoToSync();
+                expect(actual).to.deep.equal(expected);
+
+                td.verify(jpegMock(td.matchers.anything()), { times: 0 });
+            });
+
+            it('should return rmpty string if image download fails', async () => {
+                nock(`${baseURL}`).get(`/${dbResponse[0].path}`).reply(400, '');
+
+                const expected = {
+                    id: dbResponse[0].id,
+                    att_id: dbResponse[0].att_id,
+                    suspect_id: dbResponse[0].criminal_id,
+                    path: dbResponse[0].path,
+                    flag: dbResponse[0].flag,
+                    image: '',
+                };
+
+                const actual = await svc.getPhotoToSync();
+                expect(actual).to.deep.equal(expected);
+
+                td.verify(toBufferMock(), { times: 0 });
+                td.verify(jpegMock(td.matchers.anything()), { times: 0 });
+            });
+
+            it('should return empty string if image conversion fails', async () => {
+                nock(`${baseURL}`).get(`/${dbResponse[0].path}`).reply(200, httpResponse);
+                td.when(metadataMock()).thenReject(new Error());
+
+                const expected = {
+                    id: dbResponse[0].id,
+                    att_id: dbResponse[0].att_id,
+                    suspect_id: dbResponse[0].criminal_id,
+                    path: dbResponse[0].path,
+                    flag: dbResponse[0].flag,
+                    image: '',
+                };
+
+                const actual = await svc.getPhotoToSync();
+                expect(actual).to.deep.equal(expected);
+
+                td.verify(toBufferMock(), { times: 0 });
+                td.verify(jpegMock(td.matchers.anything()), { times: 0 });
+            });
         });
     });
 

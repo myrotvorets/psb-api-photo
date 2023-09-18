@@ -135,7 +135,7 @@ export class PhotoService {
         }
 
         const isJPEG = metadata.format === 'jpeg';
-        const sf = metadata.chromaSubsampling || '';
+        const sf = metadata.chromaSubsampling;
         const isProgressive = !!metadata.isProgressive;
         const flag = !isJPEG || sf !== '4:2:0' || isProgressive;
         if (flag) {
