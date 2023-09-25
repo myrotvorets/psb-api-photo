@@ -26,7 +26,7 @@ export async function configureApp(app: express.Express): Promise<void> {
         env.NODE_ENV,
     );
 
-    app.use('/', photoController);
+    app.use('/', photoController());
     app.use('/', notFoundMiddleware);
     app.use(errorMiddleware);
 }
