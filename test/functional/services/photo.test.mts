@@ -1,20 +1,20 @@
 /* eslint-disable import/no-named-as-default-member */
-import { after, afterEach, before, beforeEach, describe, it } from 'mocha';
 import { expect } from 'chai';
-import * as td from 'testdouble';
+import { TestDouble, func, matchers, replaceEsm, verify, when } from 'testdouble';
 import fetch from 'node-fetch';
 import * as knexpkg from 'knex';
 import mockKnex from 'mock-knex';
 import nock from 'nock';
 import { Model } from 'objection';
+import type { JpegOptions, OutputInfo, Sharp } from 'sharp';
 import { buildKnexConfig } from '../../../src/knexfile.mjs';
 import { PhotoService } from '../../../src/services/photo.mjs';
 import { SyncFlag } from '../../../src/models/sync.mjs';
 
-describe('PhotoService', () => {
+describe('PhotoService', function () {
     let db: knexpkg.Knex;
 
-    before(() => {
+    before(function () {
         const { knex } = knexpkg.default;
         db = knex(buildKnexConfig({ MYSQL_DATABASE: 'fake' }));
         mockKnex.mock(db);
@@ -23,15 +23,17 @@ describe('PhotoService', () => {
         nock.disableNetConnect();
     });
 
-    after(() => {
+    after(function () {
         nock.enableNetConnect();
         mockKnex.unmock(db);
     });
 
-    afterEach(() => mockKnex.getTracker().uninstall());
+    afterEach(function () {
+        mockKnex.getTracker().uninstall();
+    });
 
-    describe('#getCriminalIDs', () => {
-        it('should return the expected results', () => {
+    describe('#getCriminalIDs', function () {
+        it('should return the expected results', function () {
             const tracker = mockKnex.getTracker();
             tracker.on('query', (query, step) => {
                 expect(step).to.equal(1);
@@ -47,8 +49,8 @@ describe('PhotoService', () => {
         });
     });
 
-    describe('#getCriminalPhotos', () => {
-        it('should return the expected results', () => {
+    describe('#getCriminalPhotos', function () {
+        it('should return the expected results', function () {
             const baseURL = 'https://localhost/';
             const criminalID = 123;
             const dbResponse = [{ att_id: 1, path: 'criminal/00/00/7b/xxx.jpg', mime_type: 'image/jpeg' }];
@@ -74,8 +76,8 @@ describe('PhotoService', () => {
         });
     });
 
-    describe('#getCriminalsToSync', () => {
-        it('should return the expected results', () => {
+    describe('#getCriminalsToSync', function () {
+        it('should return the expected results', function () {
             const tracker = mockKnex.getTracker();
             tracker.on('query', (query, step) => {
                 expect(step).to.equal(1);
@@ -91,8 +93,8 @@ describe('PhotoService', () => {
         });
     });
 
-    describe('#downloadPhoto', () => {
-        it('should handle non-existing IDs', () => {
+    describe('#downloadPhoto', function () {
+        it('should handle non-existing IDs', function () {
             const baseURL = 'https://localhost/';
             const attachmentID = 456;
 
@@ -112,7 +114,7 @@ describe('PhotoService', () => {
             return expect(svc.downloadPhoto(attachmentID)).to.become(expected);
         });
 
-        it('should return the expected photo', () => {
+        it('should return the expected photo', function () {
             const baseURL = 'https://localhost/';
             const attachmentID = 123;
             const dbResponse = [{ att_id: 1, path: 'criminal/00/00/7b/xxx.jpg', mime_type: 'image/jpeg' }];
@@ -137,15 +139,19 @@ describe('PhotoService', () => {
         });
     });
 
-    describe('#downloadPhotoForFaceX', () => {
-        const metadataMock = td.function();
-        const toBufferMock = td.function();
-        const jpegMock = td.function();
+    describe('#downloadPhotoForFaceX', function () {
+        let metadataMock: TestDouble<Sharp['metadata']>;
+        let toBufferMock: TestDouble<Sharp['toBuffer']>;
+        let jpegMock: TestDouble<Sharp['jpeg']>;
 
         let service: typeof import('../../../src/services/photo.mjs');
 
-        beforeEach(async () => {
-            await td.replaceEsm('sharp', {
+        beforeEach(async function () {
+            metadataMock = func<Sharp['metadata']>();
+            toBufferMock = func<Sharp['toBuffer']>();
+            jpegMock = func<Sharp['jpeg']>();
+
+            await replaceEsm('sharp', {
                 default: () => ({
                     metadata: metadataMock,
                     jpeg: jpegMock,
@@ -156,7 +162,7 @@ describe('PhotoService', () => {
             service = await import('../../../src/services/photo.mjs');
         });
 
-        it('should handle non-existing IDs', () => {
+        it('should handle non-existing IDs', function () {
             const baseURL = 'https://localhost/';
             const attachmentID = 456;
 
@@ -181,8 +187,9 @@ describe('PhotoService', () => {
             [{ format: 'jpeg', chromaSubsampling: '4:2:0', isProgressive: true }, 1],
         ] as const;
 
+        // eslint-disable-next-line mocha/no-setup-in-describe
         table.forEach(([metadata, jpegCalls]) => {
-            it(`should return the photo (${JSON.stringify(metadata)})`, async () => {
+            it(`should return the photo (${JSON.stringify(metadata)})`, async function () {
                 const baseURL = 'https://localhost/';
                 const attachmentID = 123;
                 const dbResponse = [{ att_id: 1, path: 'criminal/00/00/7b/xxx.jpg', mime_type: 'image/jpeg' }];
@@ -200,16 +207,16 @@ describe('PhotoService', () => {
                 nock(`${baseURL}`).get(`/${dbResponse[0].path}`).reply(200, httpResponse);
 
                 const expected = Buffer.from(httpResponse);
-                td.when(metadataMock()).thenResolve(metadata);
-                td.when(toBufferMock()).thenResolve(expected);
+                when(metadataMock()).thenResolve(metadata);
+                when(toBufferMock()).thenResolve(expected);
 
                 const actual = await svc.downloadPhotoForFaceX(attachmentID);
                 expect(actual).to.deep.equal(expected);
-                td.verify(jpegMock(td.matchers.anything()), { times: jpegCalls });
+                verify(jpegMock(matchers.anything() as JpegOptions | undefined), { times: jpegCalls });
             });
         });
 
-        it('should return null on failure', async () => {
+        it('should return null on failure', async function () {
             const baseURL = 'https://localhost/';
             const attachmentID = 123;
             const dbResponse = [{ att_id: 1, path: 'criminal/00/00/7b/xxx.jpg', mime_type: 'image/jpeg' }];
@@ -226,18 +233,20 @@ describe('PhotoService', () => {
 
             nock(`${baseURL}`).get(`/${dbResponse[0].path}`).reply(200, httpResponse);
 
-            td.when(metadataMock()).thenReject(new Error('test'));
+            when(metadataMock()).thenReject(new Error('test'));
 
             const expected = null;
             const actual = await svc.downloadPhotoForFaceX(attachmentID);
             expect(actual).to.equal(expected);
 
-            td.verify(toBufferMock(td.matchers.anything()), { times: 0 });
-            td.verify(jpegMock(td.matchers.anything()), { times: 0 });
+            verify(toBufferMock(matchers.anything() as (err: Error, buffer: Buffer, info: OutputInfo) => void), {
+                times: 0,
+            });
+            verify(jpegMock(matchers.anything() as JpegOptions | undefined), { times: 0 });
         });
     });
 
-    describe('#getPhotoToSync', () => {
+    describe('#getPhotoToSync', function () {
         const baseURL = 'https://localhost/';
 
         const checkQuery = (query: mockKnex.QueryDetails, step: number): void => {
@@ -247,7 +256,7 @@ describe('PhotoService', () => {
                 .and.containSubset({ method: 'select', bindings: [SyncFlag.FAILED_ADD, 1] });
         };
 
-        it('should handle empty queue', () => {
+        it('should handle empty queue', function () {
             const tracker = mockKnex.getTracker();
             tracker.on('query', (query, step) => {
                 checkQuery(query, step);
@@ -261,7 +270,7 @@ describe('PhotoService', () => {
             return expect(svc.getPhotoToSync()).to.become(expected);
         });
 
-        it('should return DEL_PHOTO entries as is', () => {
+        it('should return DEL_PHOTO entries as is', function () {
             const dbResponse = [{ id: 1, att_id: 2, criminal_id: 3, path: 'test', flag: SyncFlag.DEL_PHOTO }];
 
             const tracker = mockKnex.getTracker();
@@ -285,27 +294,35 @@ describe('PhotoService', () => {
             return expect(svc.getPhotoToSync()).to.become(expected);
         });
 
-        describe('ADD_PHOTO processing', () => {
-            const metadataMock = td.function();
-            const toBufferMock = td.function();
-            const jpegMock = td.function();
+        describe('ADD_PHOTO processing', function () {
+            let metadataMock: TestDouble<Sharp['metadata']>;
+            let toBufferMock: TestDouble<Sharp['toBuffer']>;
+            let jpegMock: TestDouble<Sharp['jpeg']>;
 
             let service: typeof import('../../../src/services/photo.mjs');
             let svc: PhotoService;
 
             const httpResponse = 'test';
-            const dbResponse = [
-                { id: 1, att_id: 2, criminal_id: 3, path: 'criminal/00/00/7b/xxx.jpg', flag: SyncFlag.ADD_PHOTO },
-            ];
+            let dbResponse: Record<string, unknown>[];
 
-            beforeEach(async () => {
-                td.when(metadataMock()).thenResolve({
+            before(function () {
+                dbResponse = [
+                    { id: 1, att_id: 2, criminal_id: 3, path: 'criminal/00/00/7b/xxx.jpg', flag: SyncFlag.ADD_PHOTO },
+                ];
+
+                metadataMock = func<Sharp['metadata']>();
+                toBufferMock = func<Sharp['toBuffer']>();
+                jpegMock = func<Sharp['jpeg']>();
+            });
+
+            beforeEach(async function () {
+                when(metadataMock()).thenResolve({
                     format: 'jpeg',
                     chromaSubsampling: '4:2:0',
                     isProgressive: false,
                 });
 
-                await td.replaceEsm('sharp', {
+                await replaceEsm('sharp', {
                     default: () => ({
                         metadata: metadataMock,
                         toBuffer: toBufferMock,
@@ -325,9 +342,9 @@ describe('PhotoService', () => {
                 svc = new service.PhotoService(baseURL, fetch);
             });
 
-            it('should download the image', async () => {
+            it('should download the image', async function () {
                 nock(`${baseURL}`).get(`/${dbResponse[0].path}`).reply(200, httpResponse);
-                td.when(toBufferMock()).thenResolve(Buffer.from(httpResponse));
+                when(toBufferMock()).thenResolve(Buffer.from(httpResponse));
 
                 const expected = {
                     id: dbResponse[0].id,
@@ -341,10 +358,10 @@ describe('PhotoService', () => {
                 const actual = await svc.getPhotoToSync();
                 expect(actual).to.deep.equal(expected);
 
-                td.verify(jpegMock(td.matchers.anything()), { times: 0 });
+                verify(jpegMock(matchers.anything() as JpegOptions | undefined), { times: 0 });
             });
 
-            it('should return rmpty string if image download fails', async () => {
+            it('should return rmpty string if image download fails', async function () {
                 nock(`${baseURL}`).get(`/${dbResponse[0].path}`).reply(400, '');
 
                 const expected = {
@@ -359,13 +376,13 @@ describe('PhotoService', () => {
                 const actual = await svc.getPhotoToSync();
                 expect(actual).to.deep.equal(expected);
 
-                td.verify(toBufferMock(), { times: 0 });
-                td.verify(jpegMock(td.matchers.anything()), { times: 0 });
+                verify(toBufferMock(), { times: 0 });
+                verify(jpegMock(matchers.anything() as JpegOptions | undefined), { times: 0 });
             });
 
-            it('should return empty string if image conversion fails', async () => {
+            it('should return empty string if image conversion fails', async function () {
                 nock(`${baseURL}`).get(`/${dbResponse[0].path}`).reply(200, httpResponse);
-                td.when(metadataMock()).thenReject(new Error());
+                when(metadataMock()).thenReject(new Error());
 
                 const expected = {
                     id: dbResponse[0].id,
@@ -379,14 +396,14 @@ describe('PhotoService', () => {
                 const actual = await svc.getPhotoToSync();
                 expect(actual).to.deep.equal(expected);
 
-                td.verify(toBufferMock(), { times: 0 });
-                td.verify(jpegMock(td.matchers.anything()), { times: 0 });
+                verify(toBufferMock(), { times: 0 });
+                verify(jpegMock(matchers.anything() as JpegOptions | undefined), { times: 0 });
             });
         });
     });
 
-    describe('#markCriminalSynced', () => {
-        it('should return the expected results', () => {
+    describe('#markCriminalSynced', function () {
+        it('should return the expected results', function () {
             const id = 53;
             const tracker = mockKnex.getTracker();
             tracker.on('query', (query, step) => {
@@ -406,7 +423,7 @@ describe('PhotoService', () => {
         });
     });
 
-    describe('#setSyncStatus', () => {
+    describe('#setSyncStatus', function () {
         const id = 53;
 
         const table = [
@@ -414,8 +431,9 @@ describe('PhotoService', () => {
             [false, { method: 'update', bindings: [id], step: 1 }],
         ] as const;
 
+        // eslint-disable-next-line mocha/no-setup-in-describe
         table.forEach(([success, expectations]) => {
-            it(`should return the expected results (success = ${success})`, () => {
+            it(`should return the expected results (success = ${success})`, function () {
                 const tracker = mockKnex.getTracker();
                 tracker.on('query', (query) => {
                     expect(query).to.be.an('object').and.containSubset(expectations);

@@ -1,4 +1,6 @@
 /* c8 ignore start */
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { Knex } from 'knex';
 import { cleanEnv, num, str } from 'envalid';
 
@@ -42,6 +44,12 @@ export function buildKnexConfig(environment: NodeJS.Dict<string> = process.env):
         },
         migrations: {
             tableName: 'knex_migrations_photos',
+            directory: join(dirname(fileURLToPath(import.meta.url)), '..', 'test', 'migrations'),
+            loadExtensions: ['.mts'],
+        },
+        seeds: {
+            directory: join(dirname(fileURLToPath(import.meta.url)), '..', 'test', 'seeds'),
+            loadExtensions: ['.mts'],
         },
     };
 }
