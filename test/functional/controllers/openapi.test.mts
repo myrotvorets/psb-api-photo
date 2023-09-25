@@ -1,5 +1,4 @@
 /* eslint-disable import/no-named-as-default-member */
-import { after, afterEach, before, describe, it } from 'mocha';
 import express, { type Express } from 'express';
 import request from 'supertest';
 import * as knexpkg from 'knex';
@@ -9,11 +8,11 @@ import { buildKnexConfig } from '../../../src/knexfile.mjs';
 import { configureApp } from '../../../src/server.mjs';
 import { environment } from '../../../src/lib/environment.mjs';
 
-describe('PhotoController', () => {
+describe('PhotoController', function () {
     let app: Express;
     let db: knexpkg.Knex;
 
-    before(() => {
+    before(function () {
         const env = { ...process.env };
 
         try {
@@ -38,40 +37,45 @@ describe('PhotoController', () => {
         }
     });
 
-    after(() => mockKnex.unmock(db));
-    afterEach(() => mockKnex.getTracker().uninstall());
+    after(function () {
+        mockKnex.unmock(db);
+    });
 
-    describe('Error handling', () => {
-        describe('criminalsHandler', () => {
-            it(':after should be a number', () => {
+    afterEach(function () {
+        mockKnex.getTracker().uninstall();
+    });
+
+    describe('Error handling', function () {
+        describe('criminalsHandler', function () {
+            it(':after should be a number', function () {
                 return request(app)
                     .get('/suspects/after/1')
                     .expect(400)
                     .expect(/"code":"BAD_REQUEST"/u);
             });
 
-            it(':after should be non-negative', () => {
+            it(':after should be non-negative', function () {
                 return request(app)
                     .get('/suspects/-1/1')
                     .expect(400)
                     .expect(/"code":"BAD_REQUEST"/u);
             });
 
-            it(':count should be a number', () => {
+            it(':count should be a number', function () {
                 return request(app)
                     .get('/suspects/0/count')
                     .expect(400)
                     .expect(/"code":"BAD_REQUEST"/u);
             });
 
-            it(':count should be positive', () => {
+            it(':count should be positive', function () {
                 return request(app)
                     .get('/suspects/0/0')
                     .expect(400)
                     .expect(/"code":"BAD_REQUEST"/u);
             });
 
-            it(':count should be less than 100', () => {
+            it(':count should be less than 100', function () {
                 return request(app)
                     .get('/suspects/0/101')
                     .expect(400)
@@ -79,15 +83,15 @@ describe('PhotoController', () => {
             });
         });
 
-        describe('criminalPhotosHandler', () => {
-            it(':id should be a number', () => {
+        describe('criminalPhotosHandler', function () {
+            it(':id should be a number', function () {
                 return request(app)
                     .get('/suspects/id')
                     .expect(400)
                     .expect(/"code":"BAD_REQUEST"/u);
             });
 
-            it(':id should be positive', () => {
+            it(':id should be positive', function () {
                 return request(app)
                     .get('/suspects/0')
                     .expect(400)
@@ -95,15 +99,15 @@ describe('PhotoController', () => {
             });
         });
 
-        describe('getPhotoHandler', () => {
-            it(':id should be a number', () => {
+        describe('getPhotoHandler', function () {
+            it(':id should be a number', function () {
                 return request(app)
                     .get('/id')
                     .expect(400)
                     .expect(/"code":"BAD_REQUEST"/u);
             });
 
-            it(':id should be positive', () => {
+            it(':id should be positive', function () {
                 return request(app)
                     .get('/0')
                     .expect(400)
@@ -111,15 +115,15 @@ describe('PhotoController', () => {
             });
         });
 
-        describe('getFaceXPhotoHandler', () => {
-            it(':id should be a number', () => {
+        describe('getFaceXPhotoHandler', function () {
+            it(':id should be a number', function () {
                 return request(app)
                     .get('/id/facex')
                     .expect(400)
                     .expect(/"code":"BAD_REQUEST"/u);
             });
 
-            it(':id should be positive', () => {
+            it(':id should be positive', function () {
                 return request(app)
                     .get('/0/facex')
                     .expect(400)
@@ -127,8 +131,8 @@ describe('PhotoController', () => {
             });
         });
 
-        describe('setSyncStatusHandler', () => {
-            it(':id should be a number', () => {
+        describe('setSyncStatusHandler', function () {
+            it(':id should be a number', function () {
                 return request(app)
                     .put('/sync/id')
                     .set('Content-Type', 'application/json')
@@ -137,7 +141,7 @@ describe('PhotoController', () => {
                     .expect(/"code":"BAD_REQUEST"/u);
             });
 
-            it(':id should be positive', () => {
+            it(':id should be positive', function () {
                 return request(app)
                     .put('/sync/0')
                     .set('Content-Type', 'application/json')
@@ -146,7 +150,7 @@ describe('PhotoController', () => {
                     .expect(/"code":"BAD_REQUEST"/u);
             });
 
-            it('Content-Type should be application/json', () => {
+            it('Content-Type should be application/json', function () {
                 return request(app)
                     .put('/sync/1')
                     .set('Content-Type', 'text/plain')
@@ -155,7 +159,7 @@ describe('PhotoController', () => {
                     .expect(/"code":"UNSUPPORTED_MEDIA_TYPE"/u);
             });
 
-            it('request body should be parseable', () => {
+            it('request body should be parseable', function () {
                 return request(app)
                     .put('/sync/1')
                     .set('Content-Type', 'application/json')
@@ -164,7 +168,7 @@ describe('PhotoController', () => {
                     .expect(/"code":"BAD_REQUEST"/u);
             });
 
-            it('request body should have "success" property', () => {
+            it('request body should have "success" property', function () {
                 return request(app)
                     .put('/sync/1')
                     .send({ failure: false })
@@ -172,7 +176,7 @@ describe('PhotoController', () => {
                     .expect(/"code":"BAD_REQUEST"/u);
             });
 
-            it('"success" should be a boolean value', () => {
+            it('"success" should be a boolean value', function () {
                 return request(app)
                     .put('/sync/1')
                     .send({ success: 'false' })
@@ -180,7 +184,7 @@ describe('PhotoController', () => {
                     .expect(/"code":"BAD_REQUEST"/u);
             });
 
-            it('no additional properties are allowed', () => {
+            it('no additional properties are allowed', function () {
                 return request(app)
                     .put('/sync/1')
                     .send({ success: false, reason: 'unknown' })
@@ -189,36 +193,36 @@ describe('PhotoController', () => {
             });
         });
 
-        describe('getCriminalsToSyncHandler', () => {
-            it(':after should be a number', () => {
+        describe('getCriminalsToSyncHandler', function () {
+            it(':after should be a number', function () {
                 return request(app)
                     .get('/sync/suspects/after/1')
                     .expect(400)
                     .expect(/"code":"BAD_REQUEST"/u);
             });
 
-            it(':after should be non-negative', () => {
+            it(':after should be non-negative', function () {
                 return request(app)
                     .get('/sync/suspects/-1/1')
                     .expect(400)
                     .expect(/"code":"BAD_REQUEST"/u);
             });
 
-            it(':count should be a number', () => {
+            it(':count should be a number', function () {
                 return request(app)
                     .get('/sync/suspects/0/count')
                     .expect(400)
                     .expect(/"code":"BAD_REQUEST"/u);
             });
 
-            it(':count should be positive', () => {
+            it(':count should be positive', function () {
                 return request(app)
                     .get('/sync/suspects/0/0')
                     .expect(400)
                     .expect(/"code":"BAD_REQUEST"/u);
             });
 
-            it(':count should be less than 100', () => {
+            it(':count should be less than 100', function () {
                 return request(app)
                     .get('/sync/suspects/0/101')
                     .expect(400)
@@ -226,15 +230,15 @@ describe('PhotoController', () => {
             });
         });
 
-        describe('markCriminalSyncedHandler', () => {
-            it(':id should be a number', () => {
+        describe('markCriminalSyncedHandler', function () {
+            it(':id should be a number', function () {
                 return request(app)
                     .delete('/sync/suspects/id')
                     .expect(400)
                     .expect(/"code":"BAD_REQUEST"/u);
             });
 
-            it(':id should be positive', () => {
+            it(':id should be positive', function () {
                 return request(app)
                     .delete('/sync/suspects/0')
                     .expect(400)

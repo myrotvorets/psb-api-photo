@@ -9,61 +9,53 @@ on:
       - master
   workflow_dispatch:
 
-env:
-  SONARSCANNER: "true"
+permissions:
+  contents: read
 
 jobs:
   build:
     name: SonarCloud Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     if: |
       github.event_name == 'workflow_dispatch' ||
       github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name && github.event.sender.login != 'dependabot[bot]' ||
       github.event_name == 'push' && !contains(github.event.head_commit.message, '[ci skip]')
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09 # v2.5.1
+        with:
+          disable-sudo: true
+          egress-policy: block
+          allowed-endpoints: >
+            api.github.com:443
+            ea6ne4j2sb.execute-api.eu-central-1.amazonaws.com
+            github.com:443
+            npm.pkg.github.com:443
+            objects.githubusercontent.com:443
+            pipelinesghubeus23.actions.githubusercontent.com:443
+            pkg-npm.githubusercontent.com:443
+            registry.npmjs.org:443
+            sc-cleancode-sensorcache-eu-central-1-prod.s3.amazonaws.com:443
+            scanner.sonarcloud.io:443
+            sonarcloud.io:443
+            codecov.io:443
+            storage.googleapis.com:443
+
       - name: Check out the source code
-        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
         with:
           fetch-depth: 0
           submodules: true
 
-      - name: Set up Node.js environment
-        uses: actions/setup-node@5e21ff4d9bc1a8cf6de233a3057d20ec6b3fb69d # v3.8.1
+      - name: Run SonarCloud analysis
+        uses: myrotvorets/composite-actions/node-sonarscan@master
         with:
-          node-version: lts/*
+          sonar-token: ${{ secrets.SONAR_TOKEN }}
           registry-url: https://npm.pkg.github.com
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Run postinstall scripts
-        run: npm rebuild && npm run prepare --if-present
-
-      - name: Run tests
-        run: npm run test:coverage
-
-      - name: Retrieve information from package.json
-        uses: myrotvorets/info-from-package-json-action@6a4b12839126aa2b858a12d89577fb7c5011e8f9 # 2.0.0
-        id: ver
-
-      - name: Fix paths in test-report.xml
-        run: sed -i "s@$(pwd)@/github/workspace@g" test-report.xml
-
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@c25d2e7e3def96d0d1781000d3c429da22cd6252 # v2.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectName=${{ steps.ver.outputs.packageName }}
-            -Dsonar.projectVersion=${{ steps.ver.outputs.packageVersion }}
-            -Dsonar.links.homepage=${{ steps.ver.outputs.packageHomepage }}
-            -Dsonar.links.issue=${{ steps.ver.outputs.packageBugsUrl }}
-            -Dsonar.links.scm=${{ steps.ver.outputs.packageScmUrl }}
+          test-script: 'test:coverage'
 
       - name: Install codecov
         run: npm i -g codecov

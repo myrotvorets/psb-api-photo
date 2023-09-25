@@ -18,13 +18,14 @@ jobs:
     name: NPM Audit
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
-
-      - name: Setup Node.js environment
-        uses: actions/setup-node@5e21ff4d9bc1a8cf6de233a3057d20ec6b3fb69d # v3.8.1
+      - name: Harden Runner
+        uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09 # v2.5.1
         with:
-          node-version: lts/*
+          disable-sudo: true
+          allowed-endpoints:
+            api.github.com:443
+            github.com:443
+            registry.npmjs.org:443
 
-      - name: Run audit
-        run: npm audit --omit=dev
+      - name: Audit with NPM
+        uses: myrotvorets/composite-actions/node-package-audit@master
