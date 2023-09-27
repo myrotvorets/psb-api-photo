@@ -1,8 +1,6 @@
 name: Docker CI
 
 on:
-  schedule:
-    - cron: '0 10 * * *'
   push:
     branches:
       - master
@@ -35,9 +33,7 @@ jobs:
         run: |
           DOCKER_IMAGE=myrotvorets/psb-api-photos
           VERSION=noop
-          if [ "${{ github.event_name }}" = "schedule" ]; then
-            VERSION=nightly
-          elif [[ $GITHUB_REF == refs/tags/* ]]; then
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/}
           elif [[ $GITHUB_REF == refs/heads/* ]]; then
             VERSION=$(echo ${GITHUB_REF#refs/heads/} | sed -r 's#/+#-#g')
