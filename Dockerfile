@@ -14,7 +14,7 @@ RUN \
     npm rebuild && \
     npm run prepare --if-present
 COPY --chown=nobody:nobody ./src ./src
-RUN npm run build -- --declaration false
+RUN npm run build -- --declaration false --removeComments true --sourceMap false
 RUN npm prune --omit=dev
 
 FROM myrotvorets/node-min@sha256:911bdb4078743722286b8ff3f5edaf55193e3e5ae4f86d5de4e369050f646bdb
