@@ -1,9 +1,8 @@
-import { type NextFunction, type Request, type RequestHandler, type Response, Router } from 'express';
+import { type NextFunction, type Request, type Response, Router } from 'express';
 import { asyncWrapperMiddleware } from '@myrotvorets/express-async-middleware-wrapper';
 import { ErrorResponse } from '@myrotvorets/express-microservice-middlewares';
-import { environment } from '../lib/environment.mjs';
 import { CriminalPhoto, PhotoService, SyncEntry } from '../services/photo.mjs';
-import { fetch } from '../lib/fetch.mjs';
+import { LocalsWithContainer } from '../lib/container.mjs';
 
 interface GetCriminalsParams extends Record<string, string> {
     after: string;
@@ -39,16 +38,18 @@ interface GetCriminalsPhotosResponse {
     photos: CriminalPhoto[];
 }
 
-function criminalPhotosHandler(service: PhotoService): RequestHandler<GetCriminalPhotosParams> {
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises
-    return async (req: Request<GetCriminalPhotosParams>, res: Response<GetCriminalsPhotosResponse>): Promise<void> => {
-        const { id } = req.params;
-        const photos = await service.getCriminalPhotos(+id);
-        res.json({ success: true, photos });
-    };
+async function criminalPhotosHandler(
+    req: Request<GetCriminalPhotosParams>,
+    res: Response<GetCriminalsPhotosResponse, LocalsWithContainer>,
+): Promise<void> {
+    const { id } = req.params;
+
+    const service = res.locals.container.resolve('photoService');
+    const photos = await service.getCriminalPhotos(+id);
+    res.json({ success: true, photos });
 }
 
-async function markCriminalSyncedHandler(req: Request<GetCriminalPhotosParams>, res: Response): Promise<void> {
+async function markCriminalSyncedHandler(req: Request<GetCriminalPhotosParams>, res: Response<never>): Promise<void> {
     const { id } = req.params;
     await PhotoService.markCriminalSynced(+id);
     res.status(204).end();
@@ -58,38 +59,42 @@ interface GetPhotoParams extends Record<string, string> {
     id: string;
 }
 
-function getPhotoHandler(service: PhotoService): RequestHandler<GetPhotoParams> {
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises
-    return async (req: Request<GetPhotoParams>, res: Response, next: NextFunction): Promise<void> => {
-        const { id } = req.params;
-        const [photo, mime] = await service.downloadPhoto(+id);
-        if (photo === null) {
-            next({
-                success: false,
-                status: 404,
-                code: 'NOT_FOUND',
-            } as ErrorResponse);
-        } else {
-            res.contentType(mime).send(photo);
-        }
-    };
+async function getPhotoHandler(
+    req: Request<GetPhotoParams>,
+    res: Response<ArrayBuffer, LocalsWithContainer>,
+    next: NextFunction,
+): Promise<void> {
+    const { id } = req.params;
+    const service = res.locals.container.resolve('photoService');
+    const [photo, mime] = await service.downloadPhoto(+id);
+    if (photo === null) {
+        next({
+            success: false,
+            status: 404,
+            code: 'NOT_FOUND',
+        } as ErrorResponse);
+    } else {
+        res.contentType(mime).send(photo);
+    }
 }
 
-function getFaceXPhotoHandler(service: PhotoService): RequestHandler<GetPhotoParams> {
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises
-    return async (req: Request<GetPhotoParams>, res: Response, next: NextFunction): Promise<void> => {
-        const { id } = req.params;
-        const photo = await service.downloadPhotoForFaceX(+id);
-        if (photo === null) {
-            next({
-                success: false,
-                status: 404,
-                code: 'NOT_FOUND',
-            } as ErrorResponse);
-        } else {
-            res.contentType('image/jpeg').send(photo);
-        }
-    };
+async function getFaceXPhotoHandler(
+    req: Request<GetPhotoParams>,
+    res: Response<Buffer, LocalsWithContainer>,
+    next: NextFunction,
+): Promise<void> {
+    const { id } = req.params;
+    const service = res.locals.container.resolve('photoService');
+    const photo = await service.downloadPhotoForFaceX(+id);
+    if (photo === null) {
+        next({
+            success: false,
+            status: 404,
+            code: 'NOT_FOUND',
+        } as ErrorResponse);
+    } else {
+        res.contentType('image/jpeg').send(photo);
+    }
 }
 
 interface PhotoToSyncResponse {
@@ -97,16 +102,17 @@ interface PhotoToSyncResponse {
     payload: SyncEntry;
 }
 
-function getPhotoToSyncHandler(service: PhotoService): RequestHandler {
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises
-    return async (_req: Request, res: Response<PhotoToSyncResponse>): Promise<void> => {
-        const entry = await service.getPhotoToSync();
-        if (entry) {
-            res.json({ success: true, payload: entry });
-        } else {
-            res.status(204).end();
-        }
-    };
+async function getPhotoToSyncHandler(
+    _req: Request,
+    res: Response<PhotoToSyncResponse, LocalsWithContainer>,
+): Promise<void> {
+    const service = res.locals.container.resolve('photoService');
+    const entry = await service.getPhotoToSync();
+    if (entry) {
+        res.json({ success: true, payload: entry });
+    } else {
+        res.status(204).end();
+    }
 }
 
 interface SetSyncStatusParams extends Record<string, string> {
@@ -128,18 +134,14 @@ async function setSyncStatusHandler(
 }
 
 export function photoController(): Router {
-    const env = environment();
     const router = Router();
-    const service = new PhotoService(env.PHOTOS_BASE_URL, fetch);
-
     router.get('/suspects/:after/:count', asyncWrapperMiddleware(criminalsHandler));
-    router.get('/suspects/:id', asyncWrapperMiddleware(criminalPhotosHandler(service) as RequestHandler));
+    router.get('/suspects/:id', asyncWrapperMiddleware(criminalPhotosHandler));
     router.get('/sync/suspects/:after/:count', asyncWrapperMiddleware(getCriminalsToSyncHandler));
     router.delete('/sync/suspects/:id', asyncWrapperMiddleware(markCriminalSyncedHandler));
-    router.get('/sync', asyncWrapperMiddleware(getPhotoToSyncHandler(service)));
+    router.get('/sync', asyncWrapperMiddleware(getPhotoToSyncHandler));
     router.put('/sync/:id', asyncWrapperMiddleware(setSyncStatusHandler));
-    router.get('/:id', asyncWrapperMiddleware(getPhotoHandler(service) as RequestHandler));
-    router.get('/:id/facex', asyncWrapperMiddleware(getFaceXPhotoHandler(service) as RequestHandler));
-
+    router.get('/:id', asyncWrapperMiddleware(getPhotoHandler));
+    router.get('/:id/facex', asyncWrapperMiddleware(getFaceXPhotoHandler));
     return router;
 }

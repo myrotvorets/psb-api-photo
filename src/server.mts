@@ -1,66 +1,59 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express, { type Express, json } from 'express';
-import * as knexpkg from 'knex';
-import { Model } from 'objection';
 import { installOpenApiValidator } from '@myrotvorets/oav-installer';
 import { errorMiddleware, notFoundMiddleware } from '@myrotvorets/express-microservice-middlewares';
 import { createServer } from '@myrotvorets/create-server';
-import morgan from 'morgan';
+import { recordErrorToSpan } from '@myrotvorets/opentelemetry-configurator';
 
-import { buildKnexConfig } from './knexfile.mjs';
-import { environment } from './lib/environment.mjs';
+import { initializeContainer, scopedContainerMiddleware } from './lib/container.mjs';
+import { configurator } from './lib/otel.mjs';
+
+import { requestDurationMiddleware } from './middleware/duration.mjs';
+import { loggerMiddleware } from './middleware/logger.mjs';
 
 import { photoController } from './controllers/photo.mjs';
 import { monitoringController } from './controllers/monitoring.mjs';
 
-// See https://github.com/knex/knex/issues/5358#issuecomment-1279979120
-const { knex } = knexpkg.default;
+export function configureApp(app: Express): Promise<ReturnType<typeof initializeContainer>> {
+    return configurator
+        .tracer()
+        .startActiveSpan('configureApp', async (span): Promise<ReturnType<typeof initializeContainer>> => {
+            try {
+                const container = initializeContainer();
+                const env = container.resolve('environment');
+                const base = dirname(fileURLToPath(import.meta.url));
+                const db = container.resolve('db');
 
-export async function configureApp(app: express.Express): Promise<void> {
-    const env = environment();
+                app.use(requestDurationMiddleware, scopedContainerMiddleware, loggerMiddleware, json());
 
-    await installOpenApiValidator(
-        join(dirname(fileURLToPath(import.meta.url)), 'specs', 'photos.yaml'),
-        app,
-        env.NODE_ENV,
-    );
+                app.use('/monitoring', monitoringController(db));
 
-    app.use('/', photoController());
-    app.use('/', notFoundMiddleware);
-    app.use(errorMiddleware);
+                await installOpenApiValidator(join(base, 'specs', 'photos.yaml'), app, env.NODE_ENV);
+
+                app.use(photoController(), notFoundMiddleware, errorMiddleware);
+                return container;
+            } /* c8 ignore start */ catch (e) {
+                recordErrorToSpan(e, span);
+                throw e;
+            } /* c8 ignore stop */ finally {
+                span.end();
+            }
+        });
 }
 
-/* c8 ignore start */
-export function setupApp(): Express {
+export function createApp(): Express {
     const app = express();
     app.set('strict routing', true);
     app.set('x-powered-by', false);
-
-    app.use(json());
-    app.use(
-        morgan(
-            '[PSBAPI-photos] :req[X-Request-ID]\t:method\t:url\t:status :res[content-length]\t:date[iso]\t:response-time\t:total-time',
-        ),
-    );
-
     return app;
 }
 
-function setupKnex(): knexpkg.Knex {
-    const db = knex(buildKnexConfig());
-    Model.knex(db);
-    return db;
-}
-
 export async function run(): Promise<void> {
-    const [env, app, db] = [environment(), setupApp(), setupKnex()];
-
-    app.use('/monitoring', monitoringController(db));
-
-    await configureApp(app);
+    const app = createApp();
+    const container = await configureApp(app);
+    const env = container.resolve('environment');
 
     const server = await createServer(app);
     server.listen(env.PORT);
 }
-/* c8 ignore stop */

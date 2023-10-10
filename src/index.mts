@@ -1,5 +1,5 @@
 /* c8 ignore start */
-import './lib/tracing.mjs';
+import './lib/otel.mjs';
 import { run } from './server.mjs';
 
 run().catch((e) => console.error(e));

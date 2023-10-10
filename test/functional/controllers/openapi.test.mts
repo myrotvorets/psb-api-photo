@@ -1,48 +1,27 @@
 /* eslint-disable import/no-named-as-default-member */
-import express, { type Express } from 'express';
+import type { Express } from 'express';
 import request from 'supertest';
 import * as knexpkg from 'knex';
 import mockKnex from 'mock-knex';
-import { Model } from 'objection';
-import { buildKnexConfig } from '../../../src/knexfile.mjs';
-import { configureApp } from '../../../src/server.mjs';
-import { environment } from '../../../src/lib/environment.mjs';
+import { configureApp, createApp } from '../../../src/server.mjs';
+import { container } from '../../../src/lib/container.mjs';
 
 describe('PhotoController', function () {
     let app: Express;
     let db: knexpkg.Knex;
 
-    before(function () {
-        const env = { ...process.env };
+    before(async function () {
+        await container.dispose();
 
-        try {
-            process.env = {
-                NODE_ENV: 'test',
-                PORT: '3030',
-                PHOTOS_BASE_URL: 'https://example.com/',
-            };
+        app = createApp();
+        await configureApp(app);
+        db = container.resolve('db');
 
-            environment(true);
-
-            app = express();
-
-            const { knex } = knexpkg.default;
-            db = knex(buildKnexConfig({ MYSQL_DATABASE: 'fake' }));
-            mockKnex.mock(db);
-            Model.knex(db);
-
-            return configureApp(app);
-        } finally {
-            process.env = { ...env };
-        }
+        mockKnex.mock(db);
     });
 
     after(function () {
         mockKnex.unmock(db);
-    });
-
-    afterEach(function () {
-        mockKnex.getTracker().uninstall();
     });
 
     describe('Error handling', function () {

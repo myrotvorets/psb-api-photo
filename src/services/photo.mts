@@ -130,7 +130,7 @@ export class PhotoService {
         try {
             img = sharp(photo, { failOnError: false, sequentialRead: true });
             metadata = await img.metadata();
-        } catch (e) {
+        } catch {
             return null;
         }
 
