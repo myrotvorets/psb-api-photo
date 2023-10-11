@@ -31,7 +31,6 @@ function createLogger({ req }: RequestContainer): ReturnType<(typeof configurato
     const logger = configurator.logger();
     logger.clearAttributes();
     logger.setAttribute('ip', req.ip);
-    logger.setAttribute('req-id', req.get('X-Request-ID') ?? '');
     logger.setAttribute('request', `${req.method} ${req.url}`);
     return logger;
 }

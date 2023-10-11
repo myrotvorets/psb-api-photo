@@ -46,6 +46,7 @@ export function createApp(): Express {
     const app = express();
     app.set('strict routing', true);
     app.set('x-powered-by', false);
+    app.set('trust proxy', true);
     return app;
 }
 
