@@ -15,6 +15,14 @@ export interface SyncEntry {
     image: string;
 }
 
+export interface DbSyncStats {
+    photos_to_add: number;
+    photos_to_del: number;
+    photos_add_failed: number;
+    photos_del_failed: number;
+    suspects: number;
+}
+
 export interface PhotoServiceInterface {
     getCriminalIDs(after: number, count: number): Promise<number[]>;
     getCriminalPhotos(id: number): Promise<CriminalPhoto[]>;
@@ -24,4 +32,5 @@ export interface PhotoServiceInterface {
     downloadPhotoForFaceX(attID: number): Promise<Buffer | null>;
     getPhotoToSync(): Promise<SyncEntry | null>;
     setSyncStatus(id: number, success: boolean): PromiseLike<number>;
+    getDbSyncStats(): Promise<DbSyncStats>;
 }

@@ -14,6 +14,7 @@ import { loggerMiddleware } from './middleware/logger.mjs';
 
 import { photoController } from './controllers/photo.mjs';
 import { monitoringController } from './controllers/monitoring.mjs';
+import { initAsyncMetrics } from './lib/metrics.mjs';
 
 export function configureApp(app: Express): Promise<ReturnType<typeof initializeContainer>> {
     return configurator
@@ -26,12 +27,13 @@ export function configureApp(app: Express): Promise<ReturnType<typeof initialize
                 const db = container.resolve('db');
 
                 app.use(requestDurationMiddleware, scopedContainerMiddleware, loggerMiddleware, json());
-
                 app.use('/monitoring', monitoringController(db));
 
                 await installOpenApiValidator(join(base, 'specs', 'photos.yaml'), app, env.NODE_ENV);
 
                 app.use(photoController(), notFoundMiddleware, errorMiddleware);
+
+                initAsyncMetrics(container.cradle);
                 return container;
             } /* c8 ignore start */ catch (e) {
                 recordErrorToSpan(e, span);

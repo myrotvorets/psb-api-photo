@@ -7,7 +7,7 @@ import { asClass } from 'awilix';
 import { HttpError } from '../../../src/lib/httperror.mjs';
 import { SyncFlag } from '../../../src/models/sync.mjs';
 import { container, initializeContainer } from '../../../src/lib/container.mjs';
-import type { PhotoServiceInterface } from '../../../src/services/photoserviceinterface.mjs';
+import type { DbSyncStats, PhotoServiceInterface } from '../../../src/services/photoserviceinterface.mjs';
 import { FakeImageService, toFaceXFormatMock } from './fakeimageservice.mjs';
 import { FakeDownloadService, downloadMock } from './fakedownloadservice.mjs';
 
@@ -354,6 +354,81 @@ describe('PhotoService', function () {
                 await service.setSyncStatus(id, success);
                 expect(calls).to.equal(1);
             });
+        });
+    });
+
+    describe('#getDbSyncStats', function () {
+        it('should return database sync stats', function () {
+            const expected: DbSyncStats = {
+                photos_to_add: 10,
+                photos_to_del: 5,
+                photos_add_failed: 1,
+                photos_del_failed: 1,
+                suspects: 2,
+            };
+
+            const tracker = mockKnex.getTracker();
+            tracker.on('query', (query, step) => {
+                switch (step) {
+                    case 1:
+                        expect(query.method).to.equal('select');
+                        expect(query.sql).to.contain('count').and.not.to.contain('distinct');
+                        query.response([
+                            { flag: 0, count: expected.photos_to_add },
+                            { flag: 1, count: expected.photos_to_del },
+                            { flag: 2, count: expected.photos_add_failed },
+                            { flag: 3, count: expected.photos_del_failed },
+                        ]);
+                        break;
+
+                    case 2:
+                        expect(query.method).to.equal('select');
+                        expect(query.sql).to.contain('count').and.to.contain('distinct');
+                        query.response([{ count: expected.suspects }]);
+                        break;
+
+                    default:
+                        expect.fail(`Unexpected step number: ${step}`);
+                }
+            });
+
+            tracker.install();
+            const service = container.resolve('photoService');
+            return expect(service.getDbSyncStats()).to.become(expected);
+        });
+
+        it('should fill missing stats with zeros', function () {
+            const expected: DbSyncStats = {
+                photos_to_add: 0,
+                photos_to_del: 0,
+                photos_add_failed: 0,
+                photos_del_failed: 0,
+                suspects: 0,
+            };
+
+            const tracker = mockKnex.getTracker();
+            tracker.on('query', (query, step) => {
+                switch (step) {
+                    case 1:
+                        expect(query.method).to.equal('select');
+                        expect(query.sql).to.contain('count').and.not.to.contain('distinct');
+                        query.response([]);
+                        break;
+
+                    case 2:
+                        expect(query.method).to.equal('select');
+                        expect(query.sql).to.contain('count').and.to.contain('distinct');
+                        query.response([]);
+                        break;
+
+                    default:
+                        expect.fail(`Unexpected step number: ${step}`);
+                }
+            });
+
+            tracker.install();
+            const service = container.resolve('photoService');
+            return expect(service.getDbSyncStats()).to.become(expected);
         });
     });
 });

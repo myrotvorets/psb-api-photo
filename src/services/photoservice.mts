@@ -1,10 +1,10 @@
 import { CriminalAttachment } from '../models/criminalattachment.mjs';
 import { Sync, SyncFlag } from '../models/sync.mjs';
-import type { CriminalPhoto, PhotoServiceInterface, SyncEntry } from './photoserviceinterface.mjs';
+import type { CriminalPhoto, DbSyncStats, PhotoServiceInterface, SyncEntry } from './photoserviceinterface.mjs';
 import type { ImageServiceInterface } from './imageserviceinterface.mjs';
 import type { DownloadServiceInterface } from './downloadserviceinterface.mjs';
 
-export type { CriminalPhoto, SyncEntry };
+export type { CriminalPhoto, SyncEntry, DbSyncStats };
 
 interface PhotoServiceOptions {
     imageService: ImageServiceInterface;
@@ -103,5 +103,35 @@ export class PhotoService implements PhotoServiceInterface {
             .update({
                 flag: Sync.raw('flag + 2'),
             });
+    }
+
+    public async getDbSyncStats(): Promise<DbSyncStats> {
+        interface PhotosCount {
+            flag: number;
+            count: number;
+        }
+
+        interface SuspectsCount {
+            count: number;
+        }
+
+        const rows = await Sync.knexQuery().select('flag').count<PhotosCount[]>('*', { as: 'count' }).groupBy('flag');
+        const map: Record<number, number> = {};
+
+        for (const row of rows) {
+            map[row.flag] = +row.count;
+        }
+
+        const rows2 = await Sync.knexQuery()
+            .countDistinct<SuspectsCount[]>('criminal_id', { as: 'count' })
+            .where('flag', '<', SyncFlag.FAILED_ADD);
+
+        return {
+            photos_to_add: map[SyncFlag.ADD_PHOTO] ?? 0,
+            photos_to_del: map[SyncFlag.DEL_PHOTO] ?? 0,
+            photos_add_failed: map[SyncFlag.FAILED_ADD] ?? 0,
+            photos_del_failed: map[SyncFlag.FAILED_DEL] ?? 0,
+            suspects: rows2[0]?.count ?? 0,
+        };
     }
 }
