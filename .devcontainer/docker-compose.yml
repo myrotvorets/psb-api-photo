@@ -1,0 +1,108 @@
+services:
+  app:
+    image: ghcr.io/myrotvorets/codespaces/psb-api-microservice-node:latest@sha256:2a2d8faea605232dab2493ac1bd8d78f8a36baaf6dee7b1443acb570031a3126
+    depends_on:
+      - otel-collector
+      - jaeger
+      - grafana
+    environment:
+      - NODE_ENV=development
+      - NO_UPDATE_NOTIFIER=true
+      - NPM_CONFIG_FUND=0
+      - SUPPRESS_SUPPORT=1
+      - HTTPS=0
+      - PORT=3000
+      - OTEL_TRACES_EXPORTER=otlp
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_EXPORTER_OTLP_HEADERS=Authorization=basic b3RlbDpvdGVs
+      - MYSQL_DATABASE=myrotvorets
+      - MYSQL_USER=myro
+      - MYSQL_PASSWORD=pass
+      - MYSQL_HOST=mariadb
+      - npm_config_userconfig=/usr/src/service/.npmrc.local
+      - PHOTOS_BASE_URL=https://cdn.myrotvorets.center/m/
+    restart: always
+    volumes:
+      - "../:/usr/src/service"
+    working_dir: /usr/src/service
+
+  mariadb:
+    image: mariadb:11@sha256:77e8ad8ae65e4bf59da8e0c078a086fce71a5cff21ae3c72e55573f3fde33580
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_ROOT_HOST=%
+      - MYSQL_DATABASE=myrotvorets
+      - MYSQL_USER=myro
+      - MYSQL_PASSWORD=pass
+    restart: always
+    volumes:
+      - mysqldata:/var/lib/mysql
+
+  adminer:
+    image: adminer:latest@sha256:40c1d6691703a8ca102dc108c4a6fc11863e928b6ae6014fb8557b6e083a29ff
+    environment:
+      - ADMINER_DEFAULT_SERVER=mariadb
+    restart: always
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.87.0@sha256:ca198bbb87a552cd9975b08729d838f7bf0b0ce70cbfd06ed80774ccaa8723bd
+    command:
+      - "--config=/etc/otel-collector-config.yaml"
+    depends_on:
+      - victoriametrics
+      - jaeger
+      - loki
+    restart: always
+    volumes:
+      - ./.docker/otel-collector/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+
+  jaeger:
+    image: ghcr.io/myrotvorets/codespaces/jaeger:latest@sha256:4646af06c55e4ed419b07cf15ccfbe3207bcef86d562b679bb17d20eed5961f9
+    restart: always
+    volumes:
+      - jaegerdata:/badger
+
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.94.0@sha256:4713bac84bdb81128cf8c69a9c623ff0619083d0da564848795514ca268beb02
+    command:
+      - "--storageDataPath=/storage"
+      - "--httpListenAddr=:8428"
+    restart: always
+    volumes:
+      - vmdata:/storage
+
+  loki:
+    image: grafana/loki:2.9.1@sha256:ac8275500db293df1da30ab8782e6eae184a9ad89136231a7d39760a4826f3bc
+    command:
+      - "-config.file=/etc/loki/local-config.yaml"
+    restart: always
+
+  grafana:
+    image: grafana/grafana:10.1.4@sha256:29f39e23705d3ef653fa84ca3c01731e0771f1fedbd69ecb99868270cdeb0572
+    depends_on:
+      - victoriametrics
+      - loki
+    restart: always
+    volumes:
+      - grafanadata:/var/lib/grafana
+      - ./.docker/grafana/provisioning/:/etc/grafana/provisioning/
+      - ./.docker/grafana/dashboards/photos.json:/var/lib/grafana/dashboards/photos.json
+
+  swagger:
+    image: swaggerapi/swagger-ui:v5.9.0@sha256:384a42c8dd8b5a5e5b02269df10df076848088f06b16e9f9422368900d6d9f80
+    environment:
+      - SWAGGER_JSON_URL=/specs/photos.yaml
+      - BASE_URL=/swagger
+      - DISPLAY_REQUEST_DURATION=true
+      - DEFAULT_MODELS_EXPAND_DEPTH=100
+      - DEFAULT_MODEL_EXPAND_DEPTH=100
+      - DEEP_LINKING=true
+      - VALIDATOR_URL=none
+
+volumes:
+  grafanadata:
+  jaegerdata:
+  mysqldata:
+  vmdata:

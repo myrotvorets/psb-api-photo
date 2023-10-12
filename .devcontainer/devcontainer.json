@@ -1,0 +1,41 @@
+{
+    "name": "Photos",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "app",
+    "workspaceFolder": "/usr/src/service",
+    "forwardPorts": [80, 3100, 8080],
+    "portsAttributes": {
+        "80": {
+            "label": "Application (Frontend)",
+            "onAutoForward": "notify"
+        },
+        "3000": {
+            "label": "Application (Backend)",
+            "onAutoForward": "ignore"
+        },
+        "3100": {
+            "label": "Grafana",
+            "onAutoForward": "silent"
+        },
+        "8080": {
+            "label": "Adminer",
+            "onAutoForward": "silent"
+        }
+    },
+    "secrets": {
+        "READ_PACKAGES_TOKEN": {
+            "description": "Personal access token to install packages from ghcr.io"
+        }
+    },
+    "customizations": {
+        "codespaces": {
+            "repositories": {
+                "myrotvorets/psb-api-photos": {
+                    "permissions": {
+                        "packages": "read"
+                    }
+                }
+            }
+        }
+    }
+}
