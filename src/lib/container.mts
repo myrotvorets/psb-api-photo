@@ -2,22 +2,24 @@ import { AwilixContainer, asClass, asFunction, asValue, createContainer } from '
 import type { NextFunction, Request, Response } from 'express';
 import * as knexpkg from 'knex';
 import { Model } from 'objection';
+import type { DownloadServiceInterface } from '../services/downloadserviceinterface.mjs';
 import type { ImageServiceInterface } from '../services/imageserviceinterface.mjs';
 import type { PhotoServiceInterface } from '../services/photoserviceinterface.mjs';
-import { FetchLike, PhotoService } from '../services/photoservice.mjs';
+import { DownloadService } from '../services/downloadservice.mjs';
+import { ImageService } from '../services/imageservice.mjs';
+import { PhotoService } from '../services/photoservice.mjs';
 import { environment } from './environment.mjs';
 import { configurator } from './otel.mjs';
 import { fetch } from './fetch.mjs';
 import { buildKnexConfig } from '../knexfile.mjs';
-import { ImageService } from '../services/imageservice.mjs';
 
 export interface Container {
     photoService: PhotoServiceInterface;
     imageService: ImageServiceInterface;
+    downloadService: DownloadServiceInterface;
     environment: ReturnType<typeof environment>;
     logger: ReturnType<(typeof configurator)['logger']>;
     meter: ReturnType<(typeof configurator)['meter']>;
-    fetch: FetchLike;
     db: knexpkg.Knex;
 }
 
@@ -43,8 +45,8 @@ function createMeter(): ReturnType<(typeof configurator)['meter']> {
     return configurator.meter();
 }
 
-function createPhotoService({ environment, fetch, imageService }: Container): PhotoService {
-    return new PhotoService(environment.PHOTOS_BASE_URL, fetch, imageService);
+function createDownloadService({ environment }: Container): DownloadServiceInterface {
+    return new DownloadService(environment.PHOTOS_BASE_URL, fetch);
 }
 
 function createDatabase(): knexpkg.Knex {
@@ -58,12 +60,12 @@ export type LocalsWithContainer = Record<'container', AwilixContainer<RequestCon
 
 export function initializeContainer(): typeof container {
     container.register({
-        photoService: asFunction(createPhotoService).singleton(),
+        photoService: asClass(PhotoService).singleton(),
         imageService: asClass(ImageService).singleton(),
+        downloadService: asFunction(createDownloadService).singleton(),
         environment: asFunction(createEnvironment).singleton(),
         logger: asFunction(createLogger).scoped(),
         meter: asFunction(createMeter).singleton(),
-        fetch: asValue(fetch),
         db: asFunction(createDatabase).singleton(),
     });
 

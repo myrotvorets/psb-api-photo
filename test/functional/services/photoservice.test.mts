@@ -3,31 +3,35 @@ import { expect } from 'chai';
 import { matchers, when } from 'testdouble';
 import type { Knex } from 'knex';
 import mockKnex from 'mock-knex';
-import nock from 'nock';
 import { asClass } from 'awilix';
+import { HttpError } from '../../../src/lib/httperror.mjs';
 import { SyncFlag } from '../../../src/models/sync.mjs';
 import { container, initializeContainer } from '../../../src/lib/container.mjs';
 import type { PhotoServiceInterface } from '../../../src/services/photoserviceinterface.mjs';
 import { FakeImageService, toFaceXFormatMock } from './fakeimageservice.mjs';
+import { FakeDownloadService, downloadMock } from './fakedownloadservice.mjs';
 
 describe('PhotoService', function () {
+    let baseURL: string;
     let db: Knex;
+    let httpResponse: ArrayBuffer;
 
     before(async function () {
         await container.dispose();
         initializeContainer();
         container.register({
             imageService: asClass(FakeImageService).singleton(),
+            downloadService: asClass(FakeDownloadService).singleton(),
         });
 
         db = container.resolve('db');
         mockKnex.mock(db);
 
-        nock.disableNetConnect();
+        baseURL = container.resolve('downloadService').baseURL;
+        httpResponse = Buffer.from('Set phasers to stun!');
     });
 
     after(function () {
-        nock.enableNetConnect();
         mockKnex.unmock(db);
     });
 
@@ -55,7 +59,6 @@ describe('PhotoService', function () {
 
     describe('#getCriminalPhotos', function () {
         it('should return the expected results', function () {
-            const baseURL = process.env['PHOTOS_BASE_URL']!;
             const criminalID = 123;
             const dbResponse = [{ att_id: 1, path: 'criminal/00/00/7b/xxx.jpg', mime_type: 'image/jpeg' }];
             const expected = dbResponse.map((row) => ({
@@ -118,10 +121,10 @@ describe('PhotoService', function () {
         });
 
         it('should return the expected photo', function () {
-            const baseURL = process.env['PHOTOS_BASE_URL']!;
             const attachmentID = 123;
             const dbResponse = [{ att_id: 1, path: 'criminal/00/00/7b/xxx.jpg', mime_type: 'image/jpeg' }];
-            const httpResponse = 'test';
+
+            when(downloadMock(matchers.anything() as string)).thenResolve(httpResponse);
 
             const tracker = mockKnex.getTracker();
             tracker.on('query', (query, step) => {
@@ -133,10 +136,7 @@ describe('PhotoService', function () {
             });
             tracker.install();
 
-            nock(`${baseURL}`).get(`/${dbResponse[0]!.path}`).reply(200, httpResponse);
-
-            const expected = [new Uint8Array(Buffer.from(httpResponse)).buffer, dbResponse[0]!.mime_type];
-
+            const expected = [httpResponse, dbResponse[0]!.mime_type];
             const svc = container.resolve('photoService');
             return expect(svc.downloadPhoto(attachmentID)).to.become(expected);
         });
@@ -162,10 +162,10 @@ describe('PhotoService', function () {
         });
 
         it('should process photos', function () {
-            const baseURL = process.env['PHOTOS_BASE_URL']!;
             const attachmentID = 123;
             const dbResponse = [{ att_id: 1, path: 'criminal/00/00/7b/xxx.jpg', mime_type: 'image/jpeg' }];
-            const httpResponse = 'test';
+
+            when(downloadMock(matchers.anything() as string)).thenResolve(httpResponse);
 
             const tracker = mockKnex.getTracker();
             tracker.on('query', (query, step) => {
@@ -177,9 +177,8 @@ describe('PhotoService', function () {
             });
             tracker.install();
 
-            nock(`${baseURL}`).get(`/${dbResponse[0]!.path}`).reply(200, httpResponse);
-
             const expected = Buffer.from(httpResponse);
+
             when(toFaceXFormatMock(matchers.anything() as Buffer)).thenResolve(expected);
 
             const svc = container.resolve('photoService');
@@ -188,9 +187,6 @@ describe('PhotoService', function () {
     });
 
     describe('#getPhotoToSync', function () {
-        // eslint-disable-next-line mocha/no-setup-in-describe
-        const baseURL = process.env['PHOTOS_BASE_URL']!;
-
         const checkQuery = (query: mockKnex.QueryDetails, step: number): void => {
             expect(step).to.equal(1);
             expect(query)
@@ -235,7 +231,6 @@ describe('PhotoService', function () {
         });
 
         describe('ADD_PHOTO processing', function () {
-            const httpResponse = 'test';
             let dbResponse: Record<string, unknown>[];
             let svc: PhotoServiceInterface;
 
@@ -258,8 +253,9 @@ describe('PhotoService', function () {
             });
 
             it('should download the image', async function () {
-                nock(`${baseURL}`).get(`/${dbResponse[0]!['path']}`).reply(200, httpResponse);
-                when(toFaceXFormatMock(matchers.anything() as Buffer)).thenResolve(Buffer.from(httpResponse));
+                const toFaceXResponse = Buffer.from(httpResponse);
+                when(downloadMock(matchers.anything() as string)).thenResolve(httpResponse);
+                when(toFaceXFormatMock(matchers.anything() as Buffer)).thenResolve(Buffer.from(toFaceXResponse));
 
                 const expected = {
                     id: dbResponse[0]!['id'],
@@ -267,7 +263,7 @@ describe('PhotoService', function () {
                     suspect_id: dbResponse[0]!['criminal_id'],
                     path: dbResponse[0]!['path'],
                     flag: dbResponse[0]!['flag'],
-                    image: Buffer.from(httpResponse).toString('base64'),
+                    image: toFaceXResponse.toString('base64'),
                 };
 
                 const actual = await svc.getPhotoToSync();
@@ -275,7 +271,7 @@ describe('PhotoService', function () {
             });
 
             it('should return empty string if image download fails', async function () {
-                nock(`${baseURL}`).get(`/${dbResponse[0]!['path']}`).reply(400, '');
+                when(downloadMock(matchers.anything() as string)).thenReject(new HttpError(400));
 
                 const expected = {
                     id: dbResponse[0]!['id'],
@@ -291,7 +287,7 @@ describe('PhotoService', function () {
             });
 
             it('should return empty string if image conversion fails', async function () {
-                nock(`${baseURL}`).get(`/${dbResponse[0]!['path']}`).reply(200, httpResponse);
+                when(downloadMock(matchers.anything() as string)).thenResolve(httpResponse);
                 when(toFaceXFormatMock(matchers.anything() as Buffer)).thenResolve(null);
 
                 const expected = {

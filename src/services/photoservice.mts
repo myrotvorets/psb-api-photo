@@ -1,23 +1,24 @@
-import type { RequestInfo, RequestInit, Response } from 'node-fetch';
 import { CriminalAttachment } from '../models/criminalattachment.mjs';
 import { Sync, SyncFlag } from '../models/sync.mjs';
 import type { CriminalPhoto, PhotoServiceInterface, SyncEntry } from './photoserviceinterface.mjs';
-import { ImageServiceInterface } from './imageserviceinterface.mjs';
+import type { ImageServiceInterface } from './imageserviceinterface.mjs';
+import type { DownloadServiceInterface } from './downloadserviceinterface.mjs';
 
 export type { CriminalPhoto, SyncEntry };
 
-export type FetchLike<
-    Info extends RequestInfo = RequestInfo,
-    Init extends RequestInit = RequestInit,
-    Resp extends Response = Response,
-> = (url: Info, init?: Init) => Promise<Resp>;
+interface PhotoServiceOptions {
+    imageService: ImageServiceInterface;
+    downloadService: DownloadServiceInterface;
+}
 
 export class PhotoService implements PhotoServiceInterface {
-    public constructor(
-        private readonly baseURL: string,
-        private readonly fetch: FetchLike,
-        private readonly imageService: ImageServiceInterface,
-    ) {}
+    private readonly imageService: ImageServiceInterface;
+    private readonly downloadService: DownloadServiceInterface;
+
+    public constructor({ imageService, downloadService }: PhotoServiceOptions) {
+        this.imageService = imageService;
+        this.downloadService = downloadService;
+    }
 
     public async getCriminalIDs(after: number, count: number): Promise<number[]> {
         const rows = await CriminalAttachment.query()
@@ -35,7 +36,7 @@ export class PhotoService implements PhotoServiceInterface {
 
         return rows.map((row) => ({
             att_id: row.att_id,
-            url: `${this.baseURL}${row.path}`,
+            url: `${this.downloadService.baseURL}${row.path}`,
             mime_type: row.mime_type,
         }));
     }
@@ -56,15 +57,7 @@ export class PhotoService implements PhotoServiceInterface {
             .select('path', 'mime_type')
             .first();
 
-        if (entry) {
-            const url = new URL(`${this.baseURL}${entry.path}`);
-            const response = await this.fetch(url.href);
-            if (response.ok) {
-                return [await response.arrayBuffer(), entry.mime_type];
-            }
-        }
-
-        return [null, null];
+        return entry ? [await this.downloadService.download(entry.path), entry.mime_type] : [null, null];
     }
 
     public async downloadPhotoForFaceX(attID: number): Promise<Buffer | null> {
@@ -85,11 +78,12 @@ export class PhotoService implements PhotoServiceInterface {
             };
 
             if (row.flag === SyncFlag.ADD_PHOTO) {
-                const response = await this.fetch(`${this.baseURL}${row.path}`);
-                if (response.ok) {
-                    const image = await response.arrayBuffer();
-                    const converted = await this.imageService.toFaceXFormat(image);
+                try {
+                    const response = await this.downloadService.download(row.path);
+                    const converted = await this.imageService.toFaceXFormat(response);
                     result.image = converted ? converted.toString('base64') : '';
+                } catch {
+                    // FIXME: ignore for now
                 }
             }
 
