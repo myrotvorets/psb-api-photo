@@ -16,10 +16,10 @@ export async function up(knex: Knex): Promise<void> {
     }
 }
 
-export async function down(knex: Knex): Promise<void> {
-    if (process.env.NODE_ENV !== 'test') {
-        throw new Error(`Refusing to run this in ${process.env.NODE_ENV} environment`);
+export function down(knex: Knex): Promise<unknown> {
+    if (process.env['NODE_ENV'] !== 'test') {
+        throw new Error(`Refusing to run this in ${process.env['NODE_ENV']} environment`);
     }
 
-    await knex.schema.dropTableIfExists('criminal_attachments');
+    return knex.schema.dropTableIfExists('criminal_attachments');
 }
