@@ -1,8 +1,8 @@
 import { type NextFunction, type Request, type Response, Router } from 'express';
 import { asyncWrapperMiddleware } from '@myrotvorets/express-async-middleware-wrapper';
-import { ErrorResponse } from '@myrotvorets/express-microservice-middlewares';
-import { CriminalPhoto, PhotoService, SyncEntry } from '../services/photo.mjs';
-import { LocalsWithContainer } from '../lib/container.mjs';
+import type { ErrorResponse } from '@myrotvorets/express-microservice-middlewares';
+import type { CriminalPhoto, SyncEntry } from '../services/photoservice.mjs';
+import type { LocalsWithContainer } from '../lib/container.mjs';
 
 interface GetCriminalsParams extends Record<string, string> {
     after: string;
@@ -14,18 +14,23 @@ interface CriminalsResponse {
     ids: number[];
 }
 
-async function criminalsHandler(req: Request<GetCriminalsParams>, res: Response<CriminalsResponse>): Promise<void> {
+async function criminalsHandler(
+    req: Request<GetCriminalsParams>,
+    res: Response<CriminalsResponse, LocalsWithContainer>,
+): Promise<void> {
     const { after, count } = req.params;
-    const ids = await PhotoService.getCriminalIDs(+after, +count);
+    const service = res.locals.container.resolve('photoService');
+    const ids = await service.getCriminalIDs(+after, +count);
     res.json({ success: true, ids });
 }
 
 async function getCriminalsToSyncHandler(
     req: Request<GetCriminalsParams>,
-    res: Response<CriminalsResponse>,
+    res: Response<CriminalsResponse, LocalsWithContainer>,
 ): Promise<void> {
     const { after, count } = req.params;
-    const ids = await PhotoService.getCriminalsToSync(+after, +count);
+    const service = res.locals.container.resolve('photoService');
+    const ids = await service.getCriminalsToSync(+after, +count);
     res.json({ success: true, ids });
 }
 
@@ -49,9 +54,13 @@ async function criminalPhotosHandler(
     res.json({ success: true, photos });
 }
 
-async function markCriminalSyncedHandler(req: Request<GetCriminalPhotosParams>, res: Response<never>): Promise<void> {
+async function markCriminalSyncedHandler(
+    req: Request<GetCriminalPhotosParams>,
+    res: Response<never, LocalsWithContainer>,
+): Promise<void> {
     const { id } = req.params;
-    await PhotoService.markCriminalSynced(+id);
+    const service = res.locals.container.resolve('photoService');
+    await service.markCriminalSynced(+id);
     res.status(204).end();
 }
 
@@ -125,11 +134,12 @@ interface SetSyncStatusBody {
 
 async function setSyncStatusHandler(
     req: Request<SetSyncStatusParams, unknown, SetSyncStatusBody>,
-    res: Response,
+    res: Response<never, LocalsWithContainer>,
 ): Promise<void> {
     const { id } = req.params;
     const { success } = req.body;
-    await PhotoService.setSyncStatus(+id, success);
+    const service = res.locals.container.resolve('photoService');
+    await service.setSyncStatus(+id, success);
     res.status(204).end();
 }
 

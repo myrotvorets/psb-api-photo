@@ -1,14 +1,14 @@
 /* eslint-disable import/no-named-as-default-member */
 import type { Express } from 'express';
 import request from 'supertest';
-import * as knexpkg from 'knex';
+import type { Knex } from 'knex';
 import mockKnex from 'mock-knex';
 import { configureApp, createApp } from '../../../src/server.mjs';
 import { container } from '../../../src/lib/container.mjs';
 
 describe('PhotoController', function () {
     let app: Express;
-    let db: knexpkg.Knex;
+    let db: Knex;
 
     before(async function () {
         await container.dispose();

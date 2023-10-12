@@ -3,7 +3,7 @@ import type { NextFunction, Request, Response } from 'express';
 import type { LocalsWithContainer } from '../lib/container.mjs';
 
 export const loggerMiddleware =
-    process.env['NODE_ENV'] !== 'test'
+    process.env['NODE_ENV'] !== 'test' /* c8 ignore start */
         ? requestLogger<never, never, never, never, LocalsWithContainer>({
               format: '[PSBAPI-photos] :method\t:url\t:status :res[content-length]\t:date[iso]\t:total-time',
               beforeLogHook: (err, _req, res, line, tokens): string => {
@@ -21,4 +21,5 @@ export const loggerMiddleware =
                   return line;
               },
           })
-        : (_req: Request, _res: Response, next: NextFunction): void => next();
+        : /* c8 ignore stop */
+          (_req: Request, _res: Response, next: NextFunction): void => next();

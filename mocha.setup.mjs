@@ -14,7 +14,6 @@ process.env = {
     MYSQL_DATABASE: 'fake',
 };
 
-
 /** @type {import('mocha').RootHookObject} */
 export const mochaHooks = {
     /** @returns {void} */

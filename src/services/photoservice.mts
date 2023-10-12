@@ -1,23 +1,10 @@
-import sharp, { type Metadata, type Sharp } from 'sharp';
 import type { RequestInfo, RequestInit, Response } from 'node-fetch';
-import type { QueryBuilder } from 'objection';
 import { CriminalAttachment } from '../models/criminalattachment.mjs';
 import { Sync, SyncFlag } from '../models/sync.mjs';
+import type { CriminalPhoto, PhotoServiceInterface, SyncEntry } from './photoserviceinterface.mjs';
+import { ImageServiceInterface } from './imageserviceinterface.mjs';
 
-export interface CriminalPhoto {
-    att_id: number;
-    mime_type: string;
-    url: string;
-}
-
-export interface SyncEntry {
-    id: number;
-    att_id: number;
-    suspect_id: number;
-    path: string;
-    flag: SyncFlag;
-    image: string;
-}
+export type { CriminalPhoto, SyncEntry };
 
 export type FetchLike<
     Info extends RequestInfo = RequestInfo,
@@ -25,13 +12,14 @@ export type FetchLike<
     Resp extends Response = Response,
 > = (url: Info, init?: Init) => Promise<Resp>;
 
-export class PhotoService {
+export class PhotoService implements PhotoServiceInterface {
     public constructor(
         private readonly baseURL: string,
         private readonly fetch: FetchLike,
+        private readonly imageService: ImageServiceInterface,
     ) {}
 
-    public static async getCriminalIDs(after: number, count: number): Promise<number[]> {
+    public async getCriminalIDs(after: number, count: number): Promise<number[]> {
         const rows = await CriminalAttachment.query()
             .modify(CriminalAttachment.modifiers.onlyImages)
             .modify(CriminalAttachment.modifiers.criminalsAfter, after)
@@ -52,12 +40,12 @@ export class PhotoService {
         }));
     }
 
-    public static async getCriminalsToSync(after: number, count: number): Promise<number[]> {
+    public async getCriminalsToSync(after: number, count: number): Promise<number[]> {
         const rows = await Sync.query().modify(Sync.modifiers.getCriminalsToSync, after).limit(count);
         return rows.map((row) => row.criminal_id);
     }
 
-    public static markCriminalSynced(id: number): QueryBuilder<Sync, number> {
+    public markCriminalSynced(id: number): PromiseLike<number> {
         return Sync.query().modify(Sync.modifiers.findByCriminalId, id).delete();
     }
 
@@ -81,7 +69,7 @@ export class PhotoService {
 
     public async downloadPhotoForFaceX(attID: number): Promise<Buffer | null> {
         const [photo] = await this.downloadPhoto(attID);
-        return photo ? PhotoService.toFaceXFormat(photo) : null;
+        return photo ? this.imageService.toFaceXFormat(photo) : null;
     }
 
     public async getPhotoToSync(): Promise<SyncEntry | null> {
@@ -100,7 +88,7 @@ export class PhotoService {
                 const response = await this.fetch(`${this.baseURL}${row.path}`);
                 if (response.ok) {
                     const image = await response.arrayBuffer();
-                    const converted = await PhotoService.toFaceXFormat(image);
+                    const converted = await this.imageService.toFaceXFormat(image);
                     result.image = converted ? converted.toString('base64') : '';
                 }
             }
@@ -111,7 +99,7 @@ export class PhotoService {
         return null;
     }
 
-    public static setSyncStatus(id: number, success: boolean): QueryBuilder<Sync, number> {
+    public setSyncStatus(id: number, success: boolean): PromiseLike<number> {
         if (success) {
             return Sync.query().deleteById(id);
         }
@@ -121,30 +109,5 @@ export class PhotoService {
             .update({
                 flag: Sync.raw('flag + 2'),
             });
-    }
-
-    protected static async toFaceXFormat(photo: ArrayBuffer): Promise<Buffer | null> {
-        let img: Sharp;
-        let metadata: Metadata;
-
-        try {
-            img = sharp(photo, { failOnError: false, sequentialRead: true });
-            metadata = await img.metadata();
-        } catch {
-            return null;
-        }
-
-        const isJPEG = metadata.format === 'jpeg';
-        const sf = metadata.chromaSubsampling;
-        const isProgressive = !!metadata.isProgressive;
-        const flag = !isJPEG || sf !== '4:2:0' || isProgressive;
-        if (flag) {
-            img.jpeg({
-                progressive: false,
-                chromaSubsampling: '4:2:0',
-            });
-        }
-
-        return img.toBuffer();
     }
 }
