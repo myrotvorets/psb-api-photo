@@ -132,9 +132,9 @@ describe('PhotoService', function () {
 
             const svc = new PhotoService(baseURL, fetch);
 
-            nock(`${baseURL}`).get(`/${dbResponse[0].path}`).reply(200, httpResponse);
+            nock(`${baseURL}`).get(`/${dbResponse[0]!.path}`).reply(200, httpResponse);
 
-            const expected = [new Uint8Array(Buffer.from(httpResponse)).buffer, dbResponse[0].mime_type];
+            const expected = [new Uint8Array(Buffer.from(httpResponse)).buffer, dbResponse[0]!.mime_type];
             return expect(svc.downloadPhoto(attachmentID)).to.become(expected);
         });
     });
@@ -204,7 +204,7 @@ describe('PhotoService', function () {
 
                 const svc = new service.PhotoService(baseURL, fetch);
 
-                nock(`${baseURL}`).get(`/${dbResponse[0].path}`).reply(200, httpResponse);
+                nock(`${baseURL}`).get(`/${dbResponse[0]!.path}`).reply(200, httpResponse);
 
                 const expected = Buffer.from(httpResponse);
                 when(metadataMock()).thenResolve(metadata);
@@ -231,7 +231,7 @@ describe('PhotoService', function () {
 
             const svc = new service.PhotoService(baseURL, fetch);
 
-            nock(`${baseURL}`).get(`/${dbResponse[0].path}`).reply(200, httpResponse);
+            nock(`${baseURL}`).get(`/${dbResponse[0]!.path}`).reply(200, httpResponse);
 
             when(metadataMock()).thenReject(new Error('test'));
 
@@ -283,11 +283,11 @@ describe('PhotoService', function () {
             const svc = new PhotoService(baseURL, fetch);
 
             const expected = {
-                id: dbResponse[0].id,
-                att_id: dbResponse[0].att_id,
-                suspect_id: dbResponse[0].criminal_id,
-                path: dbResponse[0].path,
-                flag: dbResponse[0].flag,
+                id: dbResponse[0]!.id,
+                att_id: dbResponse[0]!.att_id,
+                suspect_id: dbResponse[0]!.criminal_id,
+                path: dbResponse[0]!.path,
+                flag: dbResponse[0]!.flag,
                 image: '',
             };
 
@@ -343,15 +343,15 @@ describe('PhotoService', function () {
             });
 
             it('should download the image', async function () {
-                nock(`${baseURL}`).get(`/${dbResponse[0].path}`).reply(200, httpResponse);
+                nock(`${baseURL}`).get(`/${dbResponse[0]!['path']}`).reply(200, httpResponse);
                 when(toBufferMock()).thenResolve(Buffer.from(httpResponse));
 
                 const expected = {
-                    id: dbResponse[0].id,
-                    att_id: dbResponse[0].att_id,
-                    suspect_id: dbResponse[0].criminal_id,
-                    path: dbResponse[0].path,
-                    flag: dbResponse[0].flag,
+                    id: dbResponse[0]!['id'],
+                    att_id: dbResponse[0]!['att_id'],
+                    suspect_id: dbResponse[0]!['criminal_id'],
+                    path: dbResponse[0]!['path'],
+                    flag: dbResponse[0]!['flag'],
                     image: Buffer.from(httpResponse).toString('base64'),
                 };
 
@@ -362,14 +362,14 @@ describe('PhotoService', function () {
             });
 
             it('should return rmpty string if image download fails', async function () {
-                nock(`${baseURL}`).get(`/${dbResponse[0].path}`).reply(400, '');
+                nock(`${baseURL}`).get(`/${dbResponse[0]!['path']}`).reply(400, '');
 
                 const expected = {
-                    id: dbResponse[0].id,
-                    att_id: dbResponse[0].att_id,
-                    suspect_id: dbResponse[0].criminal_id,
-                    path: dbResponse[0].path,
-                    flag: dbResponse[0].flag,
+                    id: dbResponse[0]!['id'],
+                    att_id: dbResponse[0]!['att_id'],
+                    suspect_id: dbResponse[0]!['criminal_id'],
+                    path: dbResponse[0]!['path'],
+                    flag: dbResponse[0]!['flag'],
                     image: '',
                 };
 
@@ -381,15 +381,15 @@ describe('PhotoService', function () {
             });
 
             it('should return empty string if image conversion fails', async function () {
-                nock(`${baseURL}`).get(`/${dbResponse[0].path}`).reply(200, httpResponse);
+                nock(`${baseURL}`).get(`/${dbResponse[0]!['path']}`).reply(200, httpResponse);
                 when(metadataMock()).thenReject(new Error());
 
                 const expected = {
-                    id: dbResponse[0].id,
-                    att_id: dbResponse[0].att_id,
-                    suspect_id: dbResponse[0].criminal_id,
-                    path: dbResponse[0].path,
-                    flag: dbResponse[0].flag,
+                    id: dbResponse[0]!['id'],
+                    att_id: dbResponse[0]!['att_id'],
+                    suspect_id: dbResponse[0]!['criminal_id'],
+                    path: dbResponse[0]!['path'],
+                    flag: dbResponse[0]!['flag'],
                     image: '',
                 };
 

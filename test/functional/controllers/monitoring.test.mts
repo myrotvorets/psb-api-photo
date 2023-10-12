@@ -4,7 +4,6 @@ import express, { type Express } from 'express';
 import request from 'supertest';
 import * as knexpkg from 'knex';
 import mockKnex from 'mock-knex';
-import { HealthChecker } from '@cloudnative/health-connect';
 import { buildKnexConfig } from '../../../src/knexfile.mjs';
 import { healthChecker, monitoringController } from '../../../src/controllers/monitoring.mjs';
 
@@ -31,7 +30,7 @@ describe('MonitoringController', function () {
         process.removeAllListeners('SIGTERM');
         mockKnex.getTracker().uninstall();
         expect(healthChecker).not.to.be.undefined;
-        (healthChecker as HealthChecker).shutdownRequested = false;
+        healthChecker!.shutdownRequested = false;
     });
 
     const checker200 = (endpoint: string): Promise<unknown> =>
@@ -39,7 +38,7 @@ describe('MonitoringController', function () {
 
     const checker503 = (endpoint: string): Promise<unknown> => {
         expect(healthChecker).not.to.be.undefined;
-        (healthChecker as HealthChecker).shutdownRequested = true;
+        healthChecker!.shutdownRequested = true;
         return request(app).get(`/monitoring/${endpoint}`).expect('Content-Type', /json/u).expect(503);
     };
 

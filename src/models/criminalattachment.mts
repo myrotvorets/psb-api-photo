@@ -1,4 +1,9 @@
-import { Model, type Modifiers, type QueryBuilder } from 'objection';
+import { Model, type Modifier, type QueryBuilder } from 'objection';
+
+type CriminalAttachmentModifiers = Record<
+    'onlyImages' | 'criminalsAfter' | 'byId' | 'byAttachmentId',
+    Modifier<QueryBuilder<CriminalAttachment>>
+>;
 
 export class CriminalAttachment extends Model {
     public id!: number;
@@ -6,9 +11,9 @@ export class CriminalAttachment extends Model {
     public path!: string;
     public mime_type!: string;
 
-    public static tableName = 'criminal_attachments';
+    public static override tableName = 'criminal_attachments';
 
-    public static modifiers: Modifiers<QueryBuilder<Model>> = {
+    public static override modifiers: CriminalAttachmentModifiers = {
         onlyImages(builder): void {
             const { ref } = CriminalAttachment;
             void builder.where(ref('mime_type'), 'LIKE', 'image/%');
@@ -26,5 +31,5 @@ export class CriminalAttachment extends Model {
             const { ref } = CriminalAttachment;
             void builder.where(ref('att_id'), attId);
         },
-    };
+    } as const;
 }

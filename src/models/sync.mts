@@ -1,4 +1,4 @@
-import { Model, type Modifiers, type QueryBuilder } from 'objection';
+import { Model, type Modifier, type QueryBuilder } from 'objection';
 
 export const enum SyncFlag {
     ADD_PHOTO = 0,
@@ -7,6 +7,8 @@ export const enum SyncFlag {
     FAILED_DEL = 3,
 }
 
+type SyncModifiers = Record<'getPhotoToSync' | 'findByCriminalId' | 'getCriminalsToSync', Modifier<QueryBuilder<Sync>>>;
+
 export class Sync extends Model {
     public id!: number;
     public att_id!: number;
@@ -14,9 +16,9 @@ export class Sync extends Model {
     public path!: string;
     public flag!: SyncFlag;
 
-    public static tableName = 'criminal_attachments_log_n';
+    public static override tableName = 'criminal_attachments_log_n';
 
-    public static modifiers: Modifiers<QueryBuilder<Model>> = {
+    public static override modifiers: SyncModifiers = {
         getPhotoToSync(builder): void {
             const { ref } = Sync;
             void builder.where(ref('flag'), '<', SyncFlag.FAILED_ADD).orderBy(ref('id')).limit(1);
