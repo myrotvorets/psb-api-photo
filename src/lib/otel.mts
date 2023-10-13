@@ -1,16 +1,8 @@
 /* c8 ignore start */
 import { ValueType } from '@opentelemetry/api';
-import { OpenTelemetryConfigurator, getExpressInstrumentations } from '@myrotvorets/opentelemetry-configurator';
-import { KnexInstrumentation } from '@myrotvorets/opentelemetry-plugin-knex';
+import { getMeter } from '@myrotvorets/otel-utils';
 
-export const configurator = new OpenTelemetryConfigurator({
-    serviceName: 'psb-api-photos',
-    instrumentations: [...getExpressInstrumentations(), new KnexInstrumentation()],
-});
-
-configurator.start();
-
-const meter = configurator.meter();
+const meter = getMeter();
 
 export const requestDurationHistogram = meter.createHistogram('psbapi.request.duration', {
     description: 'Measures the duration of requests.',

@@ -2,6 +2,7 @@ import { AwilixContainer, asClass, asFunction, asValue, createContainer } from '
 import type { NextFunction, Request, Response } from 'express';
 import * as knexpkg from 'knex';
 import { Model } from 'objection';
+import { Logger, Meter, getLogger, getMeter } from '@myrotvorets/otel-utils';
 import type { DownloadServiceInterface } from '../services/downloadserviceinterface.mjs';
 import type { ImageServiceInterface } from '../services/imageserviceinterface.mjs';
 import type { PhotoServiceInterface } from '../services/photoserviceinterface.mjs';
@@ -9,7 +10,6 @@ import { DownloadService } from '../services/downloadservice.mjs';
 import { ImageService } from '../services/imageservice.mjs';
 import { PhotoService } from '../services/photoservice.mjs';
 import { environment } from './environment.mjs';
-import { configurator } from './otel.mjs';
 import { fetch } from './fetch.mjs';
 import { buildKnexConfig } from '../knexfile.mjs';
 
@@ -18,8 +18,8 @@ export interface Container {
     imageService: ImageServiceInterface;
     downloadService: DownloadServiceInterface;
     environment: ReturnType<typeof environment>;
-    logger: ReturnType<(typeof configurator)['logger']>;
-    meter: ReturnType<(typeof configurator)['meter']>;
+    logger: Logger;
+    meter: Meter;
     db: knexpkg.Knex;
 }
 
@@ -33,16 +33,12 @@ function createEnvironment(): ReturnType<typeof environment> {
     return environment(true);
 }
 
-function createLogger({ req }: RequestContainer): ReturnType<(typeof configurator)['logger']> {
-    const logger = configurator.logger();
+function createLogger({ req }: RequestContainer): Logger {
+    const logger = getLogger();
     logger.clearAttributes();
     logger.setAttribute('ip', req.ip);
     logger.setAttribute('request', `${req.method} ${req.url}`);
     return logger;
-}
-
-function createMeter(): ReturnType<(typeof configurator)['meter']> {
-    return configurator.meter();
 }
 
 function createDownloadService({ environment }: Container): DownloadServiceInterface {
@@ -65,7 +61,7 @@ export function initializeContainer(): typeof container {
         downloadService: asFunction(createDownloadService).singleton(),
         environment: asFunction(createEnvironment).singleton(),
         logger: asFunction(createLogger).scoped(),
-        meter: asFunction(createMeter).singleton(),
+        meter: asFunction(getMeter).singleton(),
         db: asFunction(createDatabase).singleton(),
     });
 

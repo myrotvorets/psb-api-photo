@@ -4,10 +4,9 @@ import express, { type Express, json } from 'express';
 import { installOpenApiValidator } from '@myrotvorets/oav-installer';
 import { errorMiddleware, notFoundMiddleware } from '@myrotvorets/express-microservice-middlewares';
 import { createServer } from '@myrotvorets/create-server';
-import { recordErrorToSpan } from '@myrotvorets/opentelemetry-configurator';
+import { getTracer, recordErrorToSpan } from '@myrotvorets/otel-utils';
 
 import { initializeContainer, scopedContainerMiddleware } from './lib/container.mjs';
-import { configurator } from './lib/otel.mjs';
 
 import { requestDurationMiddleware } from './middleware/duration.mjs';
 import { loggerMiddleware } from './middleware/logger.mjs';
@@ -17,9 +16,9 @@ import { monitoringController } from './controllers/monitoring.mjs';
 import { initAsyncMetrics } from './lib/metrics.mjs';
 
 export function configureApp(app: Express): Promise<ReturnType<typeof initializeContainer>> {
-    return configurator
-        .tracer()
-        .startActiveSpan('configureApp', async (span): Promise<ReturnType<typeof initializeContainer>> => {
+    return getTracer().startActiveSpan(
+        'configureApp',
+        async (span): Promise<ReturnType<typeof initializeContainer>> => {
             try {
                 const container = initializeContainer();
                 const env = container.resolve('environment');
@@ -41,7 +40,8 @@ export function configureApp(app: Express): Promise<ReturnType<typeof initialize
             } /* c8 ignore stop */ finally {
                 span.end();
             }
-        });
+        },
+    );
 }
 
 export function createApp(): Express {
