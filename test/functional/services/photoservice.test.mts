@@ -89,7 +89,7 @@ describe('PhotoService', function () {
                 expect(step).to.equal(1);
                 expect(query)
                     .to.be.an('object')
-                    .and.containSubset({ method: 'select', bindings: [0, 10] });
+                    .and.containSubset({ method: 'pluck', bindings: [0, 10] });
                 query.response([]);
             });
             tracker.install();
@@ -109,7 +109,7 @@ describe('PhotoService', function () {
                 expect(step).to.equal(1);
                 expect(query)
                     .to.be.an('object')
-                    .and.containSubset({ method: 'select', bindings: ['image/%', attachmentID] });
+                    .and.containSubset({ method: 'first', bindings: [attachmentID, 'image/%', 1] });
                 query.response([]);
             });
             tracker.install();
@@ -131,7 +131,7 @@ describe('PhotoService', function () {
                 expect(step).to.equal(1);
                 expect(query)
                     .to.be.an('object')
-                    .and.containSubset({ method: 'select', bindings: ['image/%', attachmentID] });
+                    .and.containSubset({ method: 'first', bindings: [attachmentID, 'image/%', 1] });
                 query.response(dbResponse);
             });
             tracker.install();
@@ -151,7 +151,7 @@ describe('PhotoService', function () {
                 expect(step).to.equal(1);
                 expect(query)
                     .to.be.an('object')
-                    .and.containSubset({ method: 'select', bindings: ['image/%', attachmentID] });
+                    .and.containSubset({ method: 'first', bindings: ['image/%', attachmentID, 1] });
                 query.response([]);
             });
             tracker.install();
@@ -172,7 +172,7 @@ describe('PhotoService', function () {
                 expect(step).to.equal(1);
                 expect(query)
                     .to.be.an('object')
-                    .and.containSubset({ method: 'select', bindings: ['image/%', attachmentID] });
+                    .and.containSubset({ method: 'first', bindings: [attachmentID, 'image/%', 1] });
                 query.response(dbResponse);
             });
             tracker.install();
@@ -191,7 +191,7 @@ describe('PhotoService', function () {
             expect(step).to.equal(1);
             expect(query)
                 .to.be.an('object')
-                .and.containSubset({ method: 'select', bindings: [SyncFlag.FAILED_ADD, 1] });
+                .and.containSubset({ method: 'first', bindings: [SyncFlag.FAILED_ADD, 1] });
         };
 
         it('should handle empty queue', function () {
@@ -382,7 +382,7 @@ describe('PhotoService', function () {
                         break;
 
                     case 2:
-                        expect(query.method).to.equal('select');
+                        expect(query.method).to.equal('pluck');
                         expect(query.sql).to.contain('count').and.to.contain('distinct');
                         query.response([{ count: expected.suspects }]);
                         break;
@@ -416,7 +416,7 @@ describe('PhotoService', function () {
                         break;
 
                     case 2:
-                        expect(query.method).to.equal('select');
+                        expect(query.method).to.equal('pluck');
                         expect(query.sql).to.contain('count').and.to.contain('distinct');
                         query.response([]);
                         break;

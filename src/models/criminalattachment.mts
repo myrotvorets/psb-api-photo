@@ -1,35 +1,53 @@
-import { Model, type Modifier, type QueryBuilder } from 'objection';
+import type { Knex } from 'knex';
 
-type CriminalAttachmentModifiers = Record<
-    'onlyImages' | 'criminalsAfter' | 'byId' | 'byAttachmentId',
-    Modifier<QueryBuilder<CriminalAttachment>>
->;
+interface CriminalAttachment {
+    id: number;
+    att_id: number;
+    path: string;
+    mime_type: string;
+}
 
-export class CriminalAttachment extends Model {
-    public id!: number;
-    public att_id!: number;
-    public path!: string;
-    public mime_type!: string;
+interface ModelOptions {
+    db: Knex<CriminalAttachment, CriminalAttachment[]>;
+}
 
-    public static override tableName = 'criminal_attachments';
+export class CriminalAttachmentModel {
+    public static readonly tableName = 'criminal_attachments';
 
-    public static override modifiers: CriminalAttachmentModifiers = {
-        onlyImages(builder): void {
-            const { ref } = CriminalAttachment;
-            void builder.where(ref('mime_type'), 'LIKE', 'image/%');
-        },
-        criminalsAfter(builder, n: number): void {
-            const { ref } = CriminalAttachment;
-            const idColumn = ref('id');
-            void builder.distinct(idColumn).where(idColumn, '>', n).orderBy(idColumn, 'ASC');
-        },
-        byId(builder, id: number): void {
-            const { ref } = CriminalAttachment;
-            void builder.where(ref('id'), id).orderBy(ref('sort_order'), 'ASC');
-        },
-        byAttachmentId(builder, attId: number): void {
-            const { ref } = CriminalAttachment;
-            void builder.where(ref('att_id'), attId);
-        },
-    } as const;
+    private readonly db: Knex<CriminalAttachment, CriminalAttachment[]>;
+
+    public constructor({ db }: ModelOptions) {
+        this.db = db;
+    }
+
+    public criminalsAfter(n: number, count: number): Promise<Pick<CriminalAttachment, 'id'>[]> {
+        return this.db(CriminalAttachmentModel.tableName)
+            .distinct('id')
+            .where('id', '>', n)
+            .where('mime_type', 'LIKE', 'image/%')
+            .orderBy('id', 'asc')
+            .limit(count);
+    }
+
+    public byId(id: number): Promise<Pick<CriminalAttachment, 'att_id' | 'path' | 'mime_type'>[]> {
+        return this.db(CriminalAttachmentModel.tableName)
+            .select('att_id', 'path', 'mime_type')
+            .where('id', id)
+            .where('mime_type', 'LIKE', 'image/%')
+            .orderBy('sort_order', 'asc');
+    }
+
+    public byAttachmentId(attId: number): Promise<Pick<CriminalAttachment, 'path' | 'mime_type'> | undefined> {
+        return this.db(CriminalAttachmentModel.tableName)
+            .select('path', 'mime_type')
+            .where('att_id', attId)
+            .where('mime_type', 'LIKE', 'image/%')
+            .first();
+    }
+}
+
+declare module 'knex/types/tables.js' {
+    interface Tables {
+        [CriminalAttachmentModel.tableName]: CriminalAttachment;
+    }
 }

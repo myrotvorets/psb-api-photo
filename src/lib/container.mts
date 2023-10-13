@@ -1,7 +1,6 @@
 import { AwilixContainer, asClass, asFunction, asValue, createContainer } from 'awilix';
 import type { NextFunction, Request, Response } from 'express';
 import * as knexpkg from 'knex';
-import { Model } from 'objection';
 import { Logger, Meter, getLogger, getMeter } from '@myrotvorets/otel-utils';
 import type { DownloadServiceInterface } from '../services/downloadserviceinterface.mjs';
 import type { ImageServiceInterface } from '../services/imageserviceinterface.mjs';
@@ -9,6 +8,8 @@ import type { PhotoServiceInterface } from '../services/photoserviceinterface.mj
 import { DownloadService } from '../services/downloadservice.mjs';
 import { ImageService } from '../services/imageservice.mjs';
 import { PhotoService } from '../services/photoservice.mjs';
+import { CriminalAttachmentModel } from '../models/criminalattachment.mjs';
+import { SyncModel } from '../models/sync.mjs';
 import { environment } from './environment.mjs';
 import { fetch } from './fetch.mjs';
 import { buildKnexConfig } from '../knexfile.mjs';
@@ -17,6 +18,8 @@ export interface Container {
     photoService: PhotoServiceInterface;
     imageService: ImageServiceInterface;
     downloadService: DownloadServiceInterface;
+    criminalAttachmentModel: CriminalAttachmentModel;
+    syncModel: SyncModel;
     environment: ReturnType<typeof environment>;
     logger: Logger;
     meter: Meter;
@@ -47,9 +50,7 @@ function createDownloadService({ environment }: Container): DownloadServiceInter
 
 function createDatabase(): knexpkg.Knex {
     const { knex } = knexpkg.default;
-    const db = knex(buildKnexConfig());
-    Model.knex(db);
-    return db;
+    return knex(buildKnexConfig());
 }
 
 export type LocalsWithContainer = Record<'container', AwilixContainer<RequestContainer & Container>>;
@@ -59,6 +60,8 @@ export function initializeContainer(): typeof container {
         photoService: asClass(PhotoService).singleton(),
         imageService: asClass(ImageService).singleton(),
         downloadService: asFunction(createDownloadService).singleton(),
+        criminalAttachmentModel: asClass(CriminalAttachmentModel).singleton(),
+        syncModel: asClass(SyncModel).singleton(),
         environment: asFunction(createEnvironment).singleton(),
         logger: asFunction(createLogger).scoped(),
         meter: asFunction(getMeter).singleton(),
