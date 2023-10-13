@@ -1,6 +1,6 @@
 services:
   app:
-    image: ghcr.io/myrotvorets/codespaces/psb-api-microservice-node:latest@sha256:2542a2e83d1976690d8b13dc4f9a367925c1ec2667038770c46fb6114804feb0
+    image: ghcr.io/myrotvorets/codespaces/psb-api-microservice-node:latest@sha256:1d0c303f3be5e09df958abd0aca3d3f6f6baa44b0126ae003e4f95389bdf6974
     depends_on:
       - otel-collector
       - jaeger
