@@ -26,7 +26,7 @@
     "@myrotvorets/oav-installer": "^4.1.1",
     "@myrotvorets/opentelemetry-configurator": "^7.0.0",
     "@myrotvorets/opentelemetry-plugin-knex": "^0.30.0",
-    "@myrotvorets/otel-utils": "^0.0.8",
+    "@myrotvorets/otel-utils": "^0.0.9",
     "@opentelemetry/api": "^1.6.0",
     "@opentelemetry/core": "^1.17.1",
     "awilix": "^9.0.0",
