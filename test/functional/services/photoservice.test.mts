@@ -271,7 +271,9 @@ describe('PhotoService', function () {
             });
 
             it('should return empty string if image download fails', async function () {
-                when(downloadMock(matchers.anything() as string)).thenReject(new HttpError(400));
+                when(downloadMock(matchers.anything() as string)).thenReject(
+                    new HttpError(400, new URL('https://example.com/')),
+                );
 
                 const expected = {
                     id: dbResponse[0]!['id'],

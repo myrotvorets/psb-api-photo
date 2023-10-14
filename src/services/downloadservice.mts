@@ -21,6 +21,6 @@ export class DownloadService implements DownloadServiceInterface {
             return response.arrayBuffer();
         }
 
-        throw new HttpError(response.status);
+        throw new HttpError(response.status, url);
     }
 }

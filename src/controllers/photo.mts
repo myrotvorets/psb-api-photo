@@ -3,10 +3,42 @@ import { asyncWrapperMiddleware } from '@myrotvorets/express-async-middleware-wr
 import type { ErrorResponse } from '@myrotvorets/express-microservice-middlewares';
 import type { CriminalPhoto, SyncEntry } from '../services/photoservice.mjs';
 import type { LocalsWithContainer } from '../lib/container.mjs';
+import { HttpError } from '../lib/httperror.mjs';
 
-interface GetCriminalsParams extends Record<string, string> {
-    after: string;
-    count: string;
+function attachmentNotFound(id: number): ErrorResponse {
+    return {
+        success: false,
+        status: 404,
+        code: 'NOT_FOUND',
+        message: `Attachment ${id} not found`,
+    };
+}
+
+function handleHttpError(err: unknown, next: NextFunction, container: LocalsWithContainer['container']): void {
+    const e = err instanceof Error ? err : new Error(err?.toString());
+    const logger = container.resolve('logger');
+    if (e instanceof HttpError) {
+        const payload: ErrorResponse = {
+            success: false,
+            status: e.code === 404 ? e.code : 502,
+            code: e.code === 404 ? 'NOT_FOUND' : 'BAD_GATEWAY',
+            message: e.message,
+        };
+
+        if (e.code !== 404) {
+            logger.error(e.message);
+        }
+
+        next(payload);
+    } else {
+        logger.error(e.message);
+        next(e);
+    }
+}
+
+interface GetCriminalsParams {
+    after: number;
+    count: number;
 }
 
 interface CriminalsResponse {
@@ -20,7 +52,7 @@ async function criminalsHandler(
 ): Promise<void> {
     const { after, count } = req.params;
     const service = res.locals.container.resolve('photoService');
-    const ids = await service.getCriminalIDs(+after, +count);
+    const ids = await service.getCriminalIDs(after, count);
     res.json({ success: true, ids });
 }
 
@@ -30,12 +62,12 @@ async function getCriminalsToSyncHandler(
 ): Promise<void> {
     const { after, count } = req.params;
     const service = res.locals.container.resolve('photoService');
-    const ids = await service.getCriminalsToSync(+after, +count);
+    const ids = await service.getCriminalsToSync(after, count);
     res.json({ success: true, ids });
 }
 
-interface GetCriminalPhotosParams extends Record<string, string> {
-    id: string;
+interface GetCriminalPhotosParams {
+    id: number;
 }
 
 interface GetCriminalsPhotosResponse {
@@ -50,7 +82,7 @@ async function criminalPhotosHandler(
     const { id } = req.params;
 
     const service = res.locals.container.resolve('photoService');
-    const photos = await service.getCriminalPhotos(+id);
+    const photos = await service.getCriminalPhotos(id);
     res.json({ success: true, photos });
 }
 
@@ -60,30 +92,31 @@ async function markCriminalSyncedHandler(
 ): Promise<void> {
     const { id } = req.params;
     const service = res.locals.container.resolve('photoService');
-    await service.markCriminalSynced(+id);
+    await service.markCriminalSynced(id);
     res.status(204).end();
 }
 
-interface GetPhotoParams extends Record<string, string> {
-    id: string;
+interface GetPhotoParams {
+    id: number;
 }
 
 async function getPhotoHandler(
     req: Request<GetPhotoParams>,
-    res: Response<ArrayBuffer, LocalsWithContainer>,
+    res: Response<Buffer, LocalsWithContainer>,
     next: NextFunction,
 ): Promise<void> {
     const { id } = req.params;
     const service = res.locals.container.resolve('photoService');
-    const [photo, mime] = await service.downloadPhoto(+id);
-    if (photo === null) {
-        next({
-            success: false,
-            status: 404,
-            code: 'NOT_FOUND',
-        } as ErrorResponse);
-    } else {
-        res.contentType(mime).send(photo);
+
+    try {
+        const [photo, mime] = await service.downloadPhoto(id);
+        if (photo === null) {
+            next(attachmentNotFound(id));
+        } else {
+            res.contentType(mime).send(Buffer.from(photo));
+        }
+    } catch (err) {
+        handleHttpError(err, next, res.locals.container);
     }
 }
 
@@ -94,15 +127,16 @@ async function getFaceXPhotoHandler(
 ): Promise<void> {
     const { id } = req.params;
     const service = res.locals.container.resolve('photoService');
-    const photo = await service.downloadPhotoForFaceX(+id);
-    if (photo === null) {
-        next({
-            success: false,
-            status: 404,
-            code: 'NOT_FOUND',
-        } as ErrorResponse);
-    } else {
-        res.contentType('image/jpeg').send(photo);
+
+    try {
+        const photo = await service.downloadPhotoForFaceX(id);
+        if (photo === null) {
+            next(attachmentNotFound(id));
+        } else {
+            res.contentType('image/jpeg').send(photo);
+        }
+    } catch (err) {
+        handleHttpError(err, next, res.locals.container);
     }
 }
 
@@ -143,8 +177,27 @@ async function setSyncStatusHandler(
     res.status(204).end();
 }
 
+function intParamHandler(
+    req: Request<Record<string, unknown>>,
+    _res: Response,
+    next: NextFunction,
+    value: string,
+    name: string,
+): void {
+    req.params[name] = +value;
+    next();
+}
+
 export function photoController(): Router {
-    const router = Router();
+    const router = Router({
+        caseSensitive: true,
+        strict: true,
+    });
+
+    router.param('after', intParamHandler);
+    router.param('count', intParamHandler);
+    router.param('id', intParamHandler);
+
     router.get('/suspects/:after/:count', asyncWrapperMiddleware(criminalsHandler));
     router.get('/suspects/:id', asyncWrapperMiddleware(criminalPhotosHandler));
     router.get('/sync/suspects/:after/:count', asyncWrapperMiddleware(getCriminalsToSyncHandler));

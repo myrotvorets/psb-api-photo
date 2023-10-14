@@ -44,6 +44,10 @@ function createLogger({ req }: RequestContainer): Logger {
     return logger;
 }
 
+function createMeter(): Meter {
+    return getMeter();
+}
+
 function createDownloadService({ environment }: Container): DownloadServiceInterface {
     return new DownloadService(environment.PHOTOS_BASE_URL, fetch);
 }
@@ -64,7 +68,7 @@ export function initializeContainer(): typeof container {
         syncModel: asClass(SyncModel).singleton(),
         environment: asFunction(createEnvironment).singleton(),
         logger: asFunction(createLogger).scoped(),
-        meter: asFunction(getMeter).singleton(),
+        meter: asFunction(createMeter).singleton(),
         db: asFunction(createDatabase).singleton(),
     });
 

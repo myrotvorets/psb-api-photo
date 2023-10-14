@@ -1,6 +1,7 @@
 /* c8 ignore start */
 import { OpenTelemetryConfigurator, getExpressInstrumentations } from '@myrotvorets/opentelemetry-configurator';
 import { KnexInstrumentation } from '@myrotvorets/opentelemetry-plugin-knex';
+import { initProcessMetrics } from '@myrotvorets/otel-utils';
 
 process.env['OTEL_SERVICE_NAME'] = 'psb-api-photos';
 
@@ -10,6 +11,8 @@ export const configurator = new OpenTelemetryConfigurator({
 });
 
 configurator.start();
+
+await initProcessMetrics();
 
 try {
     const { run } = await import('./server.mjs');
