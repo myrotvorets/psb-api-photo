@@ -1,6 +1,6 @@
 import { type NextFunction, type Request, type Response, Router } from 'express';
 import { asyncWrapperMiddleware } from '@myrotvorets/express-async-middleware-wrapper';
-import type { ErrorResponse } from '@myrotvorets/express-microservice-middlewares';
+import { type ErrorResponse, numberParamHandler } from '@myrotvorets/express-microservice-middlewares';
 import type { CriminalPhoto, SyncEntry } from '../services/photoservice.mjs';
 import type { LocalsWithContainer } from '../lib/container.mjs';
 import { HttpError } from '../lib/httperror.mjs';
@@ -177,26 +177,15 @@ async function setSyncStatusHandler(
     res.status(204).end();
 }
 
-function intParamHandler(
-    req: Request<Record<string, unknown>>,
-    _res: Response,
-    next: NextFunction,
-    value: string,
-    name: string,
-): void {
-    req.params[name] = +value;
-    next();
-}
-
 export function photoController(): Router {
     const router = Router({
         caseSensitive: true,
         strict: true,
     });
 
-    router.param('after', intParamHandler);
-    router.param('count', intParamHandler);
-    router.param('id', intParamHandler);
+    router.param('after', numberParamHandler);
+    router.param('count', numberParamHandler);
+    router.param('id', numberParamHandler);
 
     router.get('/suspects/:after/:count', asyncWrapperMiddleware(criminalsHandler));
     router.get('/suspects/:id', asyncWrapperMiddleware(criminalPhotosHandler));

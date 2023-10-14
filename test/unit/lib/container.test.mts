@@ -1,5 +1,4 @@
 import { expect } from 'chai';
-import { Logger } from '@myrotvorets/otel-utils';
 import { container, initializeContainer } from '../../../src/lib/container.mjs';
 import { CriminalAttachmentModel } from '../../../src/models/criminalattachment.mjs';
 import { SyncModel } from '../../../src/models/sync.mjs';
@@ -28,7 +27,7 @@ describe('Container', function () {
 
             expect(container.resolve('meter'))
                 .to.be.an('object')
-                .that.has.property('createMeter')
+                .that.has.property('createCounter')
                 .that.is.a('function');
 
             expect(container.resolve('environment'))

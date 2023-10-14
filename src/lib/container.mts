@@ -36,11 +36,14 @@ function createEnvironment(): ReturnType<typeof environment> {
     return environment(true);
 }
 
-function createLogger({ req }: RequestContainer): Logger {
+function createLogger({ req }: Partial<RequestContainer>): Logger {
     const logger = getLogger();
     logger.clearAttributes();
-    logger.setAttribute('ip', req.ip);
-    logger.setAttribute('request', `${req.method} ${req.url}`);
+    if (req) {
+        logger.setAttribute('ip', req.ip);
+        logger.setAttribute('request', `${req.method} ${req.url}`);
+    }
+
     return logger;
 }
 
@@ -71,6 +74,8 @@ export function initializeContainer(): typeof container {
         meter: asFunction(createMeter).singleton(),
         db: asFunction(createDatabase).singleton(),
     });
+
+    container.register('req', asValue(undefined));
 
     return container;
 }
