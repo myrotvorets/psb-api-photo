@@ -3,8 +3,7 @@ import { fileURLToPath } from 'node:url';
 import express, { type Express, json } from 'express';
 import { installOpenApiValidator } from '@myrotvorets/oav-installer';
 import { errorMiddleware, notFoundMiddleware } from '@myrotvorets/express-microservice-middlewares';
-import { createServer } from '@myrotvorets/create-server';
-import { getTracer, recordErrorToSpan } from '@myrotvorets/otel-utils';
+import { createServer, getTracer, recordErrorToSpan } from '@myrotvorets/otel-utils';
 
 import { initializeContainer, scopedContainerMiddleware } from './lib/container.mjs';
 
