@@ -1,7 +1,7 @@
 import { AwilixContainer, asClass, asFunction, asValue, createContainer } from 'awilix';
 import type { NextFunction, Request, Response } from 'express';
 import * as knexpkg from 'knex';
-import { Logger, Meter, getLogger, getMeter } from '@myrotvorets/otel-utils';
+import { type Logger, type Meter, getLogger, getMeter } from '@myrotvorets/otel-utils';
 import type { DownloadServiceInterface } from '../services/downloadserviceinterface.mjs';
 import type { ImageServiceInterface } from '../services/imageserviceinterface.mjs';
 import type { PhotoServiceInterface } from '../services/photoserviceinterface.mjs';
