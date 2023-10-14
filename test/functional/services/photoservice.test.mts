@@ -384,7 +384,7 @@ describe('PhotoService', function () {
                         break;
 
                     case 2:
-                        expect(query.method).to.equal('pluck');
+                        expect(query.method).to.equal('select');
                         expect(query.sql).to.contain('count').and.to.contain('distinct');
                         query.response([{ count: expected.suspects }]);
                         break;
@@ -418,7 +418,7 @@ describe('PhotoService', function () {
                         break;
 
                     case 2:
-                        expect(query.method).to.equal('pluck');
+                        expect(query.method).to.equal('select');
                         expect(query.sql).to.contain('count').and.to.contain('distinct');
                         query.response([]);
                         break;

@@ -69,11 +69,11 @@ export class SyncModel {
         return this.db(SyncModel.tableName).select('flag').count({ count: '*' }).groupBy('flag');
     }
 
-    public countQueuedSuspects(): Promise<number[]> {
-        return this.db(SyncModel.tableName)
+    public async countQueuedSuspects(): Promise<number[]> {
+        const rows = await this.db(SyncModel.tableName)
             .countDistinct({ count: 'criminal_id' })
-            .where('flag', '<', SyncFlag.FAILED_ADD)
-            .pluck('count');
+            .where('flag', '<', SyncFlag.FAILED_ADD);
+        return rows.map((row) => +row.count!);
     }
 }
 
