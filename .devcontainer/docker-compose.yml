@@ -59,7 +59,7 @@ services:
       - ./.docker/otel-collector/otel-collector-config.yaml:/etc/otel-collector-config.yaml
 
   jaeger:
-    image: ghcr.io/myrotvorets/codespaces/jaeger:latest@sha256:4646af06c55e4ed419b07cf15ccfbe3207bcef86d562b679bb17d20eed5961f9
+    image: ghcr.io/myrotvorets/codespaces/jaeger:latest@sha256:95ce2cc7fa571b160667f122f7ee466988bd11fad964f58129b917bf3fab2206
     restart: always
     volumes:
       - jaegerdata:/badger
