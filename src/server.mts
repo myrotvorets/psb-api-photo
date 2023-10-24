@@ -27,7 +27,7 @@ export function configureApp(app: Express): Promise<ReturnType<typeof initialize
                 app.use(requestDurationMiddleware, scopedContainerMiddleware, loggerMiddleware, json());
                 app.use('/monitoring', monitoringController(db));
 
-                await installOpenApiValidator(join(base, 'specs', 'photos.yaml'), app, env.NODE_ENV);
+                await installOpenApiValidator(join(base, 'specs', 'photos-private.yaml'), app, env.NODE_ENV);
 
                 app.use(photoController(), notFoundMiddleware, errorMiddleware);
 
