@@ -14,7 +14,7 @@ describe('PhotoController', function () {
         await container.dispose();
 
         app = createApp();
-        await configureApp(app);
+        configureApp(app);
         db = container.resolve('db');
 
         mockKnex.mock(db);
