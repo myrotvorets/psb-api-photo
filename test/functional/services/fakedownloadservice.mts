@@ -1,8 +1,7 @@
-import { type TestDouble, func } from 'testdouble';
+import { mock } from 'node:test';
 import type { DownloadServiceInterface } from '../../../src/services/downloadserviceinterface.mjs';
 
-export const downloadMock: TestDouble<DownloadServiceInterface['download']> =
-    func<DownloadServiceInterface['download']>();
+export const downloadMock = mock.fn<DownloadServiceInterface['download']>();
 
 export class FakeDownloadService implements DownloadServiceInterface {
     public baseURL;

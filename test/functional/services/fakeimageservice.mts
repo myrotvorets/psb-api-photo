@@ -1,8 +1,7 @@
-import { type TestDouble, func } from 'testdouble';
+import { mock } from 'node:test';
 import type { ImageServiceInterface } from '../../../src/services/imageserviceinterface.mjs';
 
-export const toFaceXFormatMock: TestDouble<ImageServiceInterface['toFaceXFormat']> =
-    func<ImageServiceInterface['toFaceXFormat']>();
+export const toFaceXFormatMock = mock.fn<ImageServiceInterface['toFaceXFormat']>();
 
 export class FakeImageService implements ImageServiceInterface {
     public async toFaceXFormat(

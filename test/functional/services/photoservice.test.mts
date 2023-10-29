@@ -1,6 +1,6 @@
 /* eslint-disable import/no-named-as-default-member */
+import { mock } from 'node:test';
 import { expect } from 'chai';
-import { matchers, when } from 'testdouble';
 import type { Knex } from 'knex';
 import mockKnex from 'mock-knex';
 import { asClass } from 'awilix';
@@ -36,6 +36,7 @@ describe('PhotoService', function () {
     });
 
     afterEach(function () {
+        mock.reset();
         mockKnex.getTracker().uninstall();
     });
 
@@ -124,7 +125,7 @@ describe('PhotoService', function () {
             const attachmentID = 123;
             const dbResponse = [{ att_id: 1, path: 'criminal/00/00/7b/xxx.jpg', mime_type: 'image/jpeg' }];
 
-            when(downloadMock(matchers.anything() as string)).thenResolve(httpResponse);
+            downloadMock.mock.mockImplementationOnce(() => Promise.resolve(httpResponse));
 
             const tracker = mockKnex.getTracker();
             tracker.on('query', (query, step) => {
@@ -165,7 +166,7 @@ describe('PhotoService', function () {
             const attachmentID = 123;
             const dbResponse = [{ att_id: 1, path: 'criminal/00/00/7b/xxx.jpg', mime_type: 'image/jpeg' }];
 
-            when(downloadMock(matchers.anything() as string)).thenResolve(httpResponse);
+            downloadMock.mock.mockImplementationOnce(() => Promise.resolve(httpResponse));
 
             const tracker = mockKnex.getTracker();
             tracker.on('query', (query, step) => {
@@ -179,7 +180,7 @@ describe('PhotoService', function () {
 
             const expected = Buffer.from(httpResponse);
 
-            when(toFaceXFormatMock(matchers.anything() as Buffer)).thenResolve(expected);
+            toFaceXFormatMock.mock.mockImplementationOnce(() => Promise.resolve(expected));
 
             const svc = container.resolve('photoService');
             return expect(svc.downloadPhotoForFaceX(attachmentID)).to.become(expected);
@@ -254,8 +255,8 @@ describe('PhotoService', function () {
 
             it('should download the image', async function () {
                 const toFaceXResponse = Buffer.from(httpResponse);
-                when(downloadMock(matchers.anything() as string)).thenResolve(httpResponse);
-                when(toFaceXFormatMock(matchers.anything() as Buffer)).thenResolve(Buffer.from(toFaceXResponse));
+                downloadMock.mock.mockImplementationOnce(() => Promise.resolve(httpResponse));
+                toFaceXFormatMock.mock.mockImplementationOnce(() => Promise.resolve(Buffer.from(toFaceXResponse)));
 
                 const expected = {
                     id: dbResponse[0]!['id'],
@@ -271,8 +272,8 @@ describe('PhotoService', function () {
             });
 
             it('should return empty string if image download fails', async function () {
-                when(downloadMock(matchers.anything() as string)).thenReject(
-                    new HttpError(400, new URL('https://example.com/')),
+                downloadMock.mock.mockImplementationOnce(() =>
+                    Promise.reject(new HttpError(400, new URL('https://example.com/'))),
                 );
 
                 const expected = {
@@ -289,8 +290,8 @@ describe('PhotoService', function () {
             });
 
             it('should return empty string if image conversion fails', async function () {
-                when(downloadMock(matchers.anything() as string)).thenResolve(httpResponse);
-                when(toFaceXFormatMock(matchers.anything() as Buffer)).thenResolve(null);
+                downloadMock.mock.mockImplementationOnce(() => Promise.resolve(httpResponse));
+                toFaceXFormatMock.mock.mockImplementationOnce(() => Promise.resolve(null));
 
                 const expected = {
                     id: dbResponse[0]!['id'],
