@@ -2,7 +2,7 @@
 module.exports = {
     recursive: true,
     extension: ['.test.mts'],
-    'node-option': +process.versions.node.split('.')[0] > 20 ? ['loader=testdouble', 'loader=ts-node/esm', 'no-warnings'] : ['loader=ts-node/esm', 'loader=testdouble', 'no-warnings'],
+    'node-option': ['loader=ts-node/esm', 'no-warnings'],
     require: 'mocha.setup.mjs',
     reporter: 'mocha-multi',
     'reporter-option': [

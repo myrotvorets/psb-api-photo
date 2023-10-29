@@ -1,63 +1,47 @@
+import { readFile } from 'node:fs/promises';
+import { basename, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect } from 'chai';
-import { TestDouble, func, matchers, replaceEsm, verify, when } from 'testdouble';
-import type { JpegOptions, Sharp } from 'sharp';
+import sharp from 'sharp';
+import { ImageService } from '../../../src/services/imageservice.mjs';
+
+const thisDir = dirname(fileURLToPath(import.meta.url));
+const files = [
+    `${thisDir}/../../fixtures/sample.png`,
+    `${thisDir}/../../fixtures/progressive.jpg`,
+    `${thisDir}/../../fixtures/4-4-4.jpg`,
+    `${thisDir}/../../fixtures/normal.jpg`,
+];
 
 describe('ImageService', function () {
     describe('#toFaceXFormat', function () {
-        let metadataMock: TestDouble<Sharp['metadata']>;
-        let toBufferMock: TestDouble<Sharp['toBuffer']>;
-        let jpegMock: TestDouble<Sharp['jpeg']>;
+        let buffers: ArrayBuffer[] = [];
+        let service: ImageService;
 
-        let service: typeof import('../../../src/services/imageservice.mjs');
-
-        beforeEach(async function () {
-            metadataMock = func<Sharp['metadata']>();
-            toBufferMock = func<Sharp['toBuffer']>();
-            jpegMock = func<Sharp['jpeg']>();
-
-            await replaceEsm('sharp', {
-                default: () => ({
-                    metadata: metadataMock,
-                    jpeg: jpegMock,
-                    toBuffer: toBufferMock,
-                }),
-            });
-
-            service = await import('../../../src/services/imageservice.mjs');
+        before(async function () {
+            buffers = await Promise.all(files.map((file) => readFile(file)));
+            service = new ImageService();
         });
-
-        const table = [
-            [{ format: 'jpeg', chromaSubsampling: '4:2:0', isProgressive: false }, 0],
-            [{ format: 'jpeg', chromaSubsampling: '4:2:0', isProgressive: true }, 1],
-        ] as const;
 
         // eslint-disable-next-line mocha/no-setup-in-describe
-        table.forEach(([metadata, jpegCalls]) => {
-            it(`should return the photo (${JSON.stringify(metadata)})`, async function () {
-                const expected = Buffer.from('test');
-                when(metadataMock()).thenResolve(metadata);
-                when(toBufferMock()).thenResolve(expected);
+        files.forEach((file, index) =>
+            it(`should process ${basename(file)}`, async function () {
+                const buffer = buffers[index]!;
+                const output = await service.toFaceXFormat(buffer);
+                expect(output).not.to.be.null;
+                const meta = await sharp(output!).metadata();
+                expect(meta).to.be.an('object').that.includes({
+                    format: 'jpeg',
+                    chromaSubsampling: '4:2:0',
+                    isProgressive: false,
+                });
+            }),
+        );
 
-                const svc = new service.ImageService();
-                const actual = await svc.toFaceXFormat(Buffer.from(''));
-                expect(actual).to.deep.equal(expected);
-
-                verify(jpegMock(matchers.anything() as JpegOptions | undefined), { times: jpegCalls });
-            });
-        });
-
-        it('should return null on failure', async function () {
-            when(metadataMock()).thenReject(new Error('test'));
-
-            const expected = null;
-            const svc = new service.ImageService();
-            const actual = await svc.toFaceXFormat(Buffer.from(''));
-            expect(actual).to.equal(expected);
-
-            verify(toBufferMock(matchers.anything() as Parameters<Sharp['toBuffer']>[0]), {
-                times: 0,
-            });
-            verify(jpegMock(matchers.anything() as JpegOptions | undefined), { times: 0 });
+        it('should return null on invalid input', async function () {
+            const buffer = await readFile(`${thisDir}/../../fixtures/test.txt`);
+            const actual = await service.toFaceXFormat(buffer);
+            expect(actual).to.be.null;
         });
     });
 });
