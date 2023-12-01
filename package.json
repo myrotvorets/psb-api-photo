@@ -46,7 +46,7 @@
     "@types/express": "^4.17.21",
     "@types/mocha": "^10.0.6",
     "@types/mock-knex": "^0.4.8",
-    "@types/node": "^20.10.1",
+    "@types/node": "^20.10.2",
     "@types/supertest": "^2.0.16",
     "c8": "^8.0.1",
     "chai": "^4.3.10",
@@ -62,7 +62,7 @@
     "mocha-reporter-sonarqube": "^2.0.5",
     "mock-knex": "^0.4.12",
     "nock": "^13.4.0",
-    "nodemon": "^3.0.1",
+    "nodemon": "^3.0.2",
     "supertest": "^6.3.3",
     "ts-node": "^10.9.1",
     "typescript": "^5.3.2"
