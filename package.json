@@ -36,7 +36,7 @@
     "knex": "^2.5.1",
     "mysql2": "^3.6.3",
     "node-fetch": "^3.3.2",
-    "sharp": "^0.32.6"
+    "sharp": "^0.33.0"
   },
   "devDependencies": {
     "@myrotvorets/eslint-config-myrotvorets-ts": "^2.24.0",
