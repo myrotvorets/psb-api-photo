@@ -20,9 +20,9 @@ describe('environment', function () {
         };
 
         process.env = {
-            NODE_ENV: `${expected.NODE_ENV}`,
+            NODE_ENV: expected.NODE_ENV,
             PORT: `${expected.PORT}`,
-            PHOTOS_BASE_URL: `${expected.PHOTOS_BASE_URL}`,
+            PHOTOS_BASE_URL: expected.PHOTOS_BASE_URL,
             EXTRA: 'xxx',
         };
 
@@ -38,9 +38,9 @@ describe('environment', function () {
         };
 
         process.env = {
-            NODE_ENV: `${expected.NODE_ENV}`,
+            NODE_ENV: expected.NODE_ENV,
             PORT: `${expected.PORT}`,
-            PHOTOS_BASE_URL: `${expected.PHOTOS_BASE_URL}`,
+            PHOTOS_BASE_URL: expected.PHOTOS_BASE_URL,
         };
 
         let actual = { ...environment(true) };
