@@ -29,7 +29,7 @@ export function configureApp(app: Express): ReturnType<typeof initializeContaine
                 installOpenApiValidator(join(base, 'specs', 'photos-private.yaml'), env.NODE_ENV),
                 photoController(),
                 notFoundMiddleware,
-                errorMiddleware,
+                errorMiddleware(),
             );
 
             initAsyncMetrics(container.cradle);
