@@ -1,37 +1,25 @@
 import { type NextFunction, type Request, type Response, Router } from 'express';
 import { asyncWrapperMiddleware } from '@myrotvorets/express-async-middleware-wrapper';
-import { type ErrorResponse, numberParamHandler } from '@myrotvorets/express-microservice-middlewares';
+import { ApiError, numberParamHandler } from '@myrotvorets/express-microservice-middlewares';
 import type { CriminalPhoto, SyncEntry } from '../services/photoservice.mjs';
 import type { LocalsWithContainer } from '../lib/container.mjs';
 import { HttpError } from '../lib/httperror.mjs';
 
-function attachmentNotFound(id: number): ErrorResponse {
-    return {
-        success: false,
-        status: 404,
-        code: 'NOT_FOUND',
-        message: `Attachment ${id} not found`,
-    };
-}
+const attachmentNotFound = (id: number, next: NextFunction): void =>
+    next(new ApiError(404, 'NOT_FOUND', `Attachment ${id} not found`));
 
-function handleHttpError(err: unknown, next: NextFunction, container: LocalsWithContainer['container']): void {
+function handleHttpError(err: unknown, next: NextFunction): void {
     const e = err instanceof Error ? err : new Error(err?.toString());
-    const logger = container.resolve('logger');
     if (e instanceof HttpError) {
-        const payload: ErrorResponse = {
-            success: false,
-            status: e.code === 404 ? e.code : 502,
-            code: e.code === 404 ? 'NOT_FOUND' : 'BAD_GATEWAY',
-            message: e.message,
-        };
+        const error = new ApiError(
+            e.code === 404 ? e.code : 502,
+            e.code === 404 ? 'NOT_FOUND' : 'BAD_GATEWAY',
+            e.message,
+            { cause: e },
+        );
 
-        if (e.code !== 404) {
-            logger.error(e.message);
-        }
-
-        next(payload);
+        next(error);
     } else {
-        logger.error(e.message);
         next(e);
     }
 }
@@ -111,12 +99,12 @@ async function getPhotoHandler(
     try {
         const [photo, mime] = await service.downloadPhoto(id);
         if (photo === null) {
-            next(attachmentNotFound(id));
+            attachmentNotFound(id, next);
         } else {
             res.contentType(mime).send(Buffer.from(photo));
         }
     } catch (err) {
-        handleHttpError(err, next, res.locals.container);
+        handleHttpError(err, next);
     }
 }
 
@@ -131,12 +119,12 @@ async function getFaceXPhotoHandler(
     try {
         const photo = await service.downloadPhotoForFaceX(id);
         if (photo === null) {
-            next(attachmentNotFound(id));
+            attachmentNotFound(id, next);
         } else {
             res.contentType('image/jpeg').send(photo);
         }
     } catch (err) {
-        handleHttpError(err, next, res.locals.container);
+        handleHttpError(err, next);
     }
 }
 
