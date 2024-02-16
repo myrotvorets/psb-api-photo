@@ -54,7 +54,7 @@
     "chai-subset": "^1.6.0",
     "eslint": "^8.56.0",
     "eslint-formatter-gha": "^1.4.3",
-    "eslint-plugin-mocha": "^10.2.0",
+    "eslint-plugin-mocha": "^10.3.0",
     "merge": "^2.1.1",
     "mocha": "^10.3.0",
     "mocha-multi": "^1.1.7",
