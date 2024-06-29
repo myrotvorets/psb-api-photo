@@ -80,7 +80,7 @@ services:
     restart: always
 
   grafana:
-    image: grafana/grafana:11.0.0@sha256:99ed02202d5166b6d25b821fa34ed184fab9ed0c18996ab0b6ce0fd35a3b67fd
+    image: grafana/grafana:7.3.7@sha256:30e05786c1773a926f57583065d1dcc8a1962ce2360fa4fa2817a28dc185d611
     depends_on:
       - victoriametrics
       - loki
