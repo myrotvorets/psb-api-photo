@@ -55,7 +55,7 @@
     "eslint-formatter-gha": "^1.5.0",
     "eslint-plugin-mocha": "^10.4.3",
     "merge": "^2.1.1",
-    "mocha": "^10.5.2",
+    "mocha": "^10.6.0",
     "mocha-multi": "^1.1.7",
     "mocha-reporter-gha": "^1.1.1",
     "mocha-reporter-sonarqube": "^2.0.6",
