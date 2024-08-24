@@ -7,6 +7,9 @@
     "@myrotvorets/myrotvorets-ts",
     "plugin:mocha/recommended"
   ],
+  "rules": {
+    "sonarjs/fixme-tag": "off"
+  },
   "env": {
     "es2022": true,
     "mocha": true,

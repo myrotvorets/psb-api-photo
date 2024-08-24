@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 import { readFile } from 'node:fs/promises';
 import { basename, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
