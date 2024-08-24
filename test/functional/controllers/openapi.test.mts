@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/assertions-in-tests */
 /* eslint-disable import/no-named-as-default-member */
 import type { Express } from 'express';
 import request from 'supertest';

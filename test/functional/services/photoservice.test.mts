@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/no-nested-functions */
 /* eslint-disable import/no-named-as-default-member */
 import { mock } from 'node:test';
 import { expect } from 'chai';
