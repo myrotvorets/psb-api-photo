@@ -65,7 +65,7 @@ services:
       - jaegerdata:/badger
 
   victoriametrics:
-    image: victoriametrics/victoria-metrics:v1.104.0@sha256:4a03f2881108571949f83764069f5ecc325de5cbbae676c2742f0a2e7523a682
+    image: victoriametrics/victoria-metrics:v1.106.0@sha256:33d24c1955fe4dac91efa0b0190dd72b8999d3dc086216f85b8d9ae74d72a6d9
     command:
       - "--storageDataPath=/storage"
       - "--httpListenAddr=:8428"
@@ -74,13 +74,13 @@ services:
       - vmdata:/storage
 
   loki:
-    image: grafana/loki:3.2.0@sha256:882e30c20683a48a8b7ca123e6c19988980b4bd13d2ff221dfcbef0fdc631694
+    image: grafana/loki:3.2.1@sha256:09a53b4a4ff81ffcd8f13886df19d33fac7a8d3aaf952e3c7e66cbade5b2fc31
     command:
       - "-config.file=/etc/loki/local-config.yaml"
     restart: always
 
   grafana:
-    image: grafana/grafana:11.2.2@sha256:d5133220d770aba5cb655147b619fa8770b90f41d8489a821d33b1cd34d16f89
+    image: grafana/grafana:11.3.0@sha256:a0f881232a6fb71a0554a47d0fe2203b6888fe77f4cefb7ea62bed7eb54e13c3
     depends_on:
       - victoriametrics
       - loki
