@@ -1,4 +1,3 @@
-/* eslint-disable import/no-named-as-default-member */
 import { expect } from 'chai';
 import nock, { type Scope } from 'nock';
 import { DownloadService } from '../../../src/services/downloadservice.mjs';
