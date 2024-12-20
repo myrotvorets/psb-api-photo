@@ -1,7 +1,8 @@
 /* eslint-disable sonarjs/assertions-in-tests */
 /* eslint-disable @typescript-eslint/no-unused-expressions */
+import type { RequestListener } from 'node:http';
 import { expect } from 'chai';
-import express, { type Express } from 'express';
+import express from 'express';
 import request from 'supertest';
 import * as knexpkg from 'knex';
 import mockKnex from 'mock-knex';
@@ -9,18 +10,19 @@ import { buildKnexConfig } from '../../../src/knexfile.mjs';
 import { healthChecker, monitoringController } from '../../../src/controllers/monitoring.mjs';
 
 describe('MonitoringController', function () {
-    let app: Express;
+    let app: RequestListener;
     let db: knexpkg.Knex;
 
     before(function () {
-        app = express();
-        app.disable('x-powered-by');
+        const application = express();
+        application.disable('x-powered-by');
 
         const { knex } = knexpkg.default;
         db = knex(buildKnexConfig({ MYSQL_DATABASE: 'fake' }));
         mockKnex.mock(db);
 
-        app.use('/monitoring', monitoringController(db));
+        application.use('/monitoring', monitoringController(db));
+        app = application as RequestListener;
     });
 
     after(function () {

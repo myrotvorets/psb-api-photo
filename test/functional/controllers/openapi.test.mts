@@ -1,5 +1,5 @@
 /* eslint-disable sonarjs/assertions-in-tests */
-import type { Express } from 'express';
+import type { RequestListener } from 'node:http';
 import request from 'supertest';
 import type { Knex } from 'knex';
 import mockKnex from 'mock-knex';
@@ -7,16 +7,17 @@ import { configureApp, createApp } from '../../../src/server.mjs';
 import { container } from '../../../src/lib/container.mjs';
 
 describe('PhotoController', function () {
-    let app: Express;
+    let app: RequestListener;
     let db: Knex;
 
     before(async function () {
         await container.dispose();
 
-        app = createApp();
-        configureApp(app);
-        db = container.resolve('db');
+        const application = createApp();
+        configureApp(application);
+        app = application as RequestListener;
 
+        db = container.resolve('db');
         mockKnex.mock(db);
     });
 
