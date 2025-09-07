@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { Environment, environment } from '../../../src/lib/environment.mjs';
+import { type Environment, environment } from '../../../src/lib/environment.mjs';
 
 describe('environment', function () {
     let env: typeof process.env;
