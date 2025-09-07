@@ -21,7 +21,7 @@ describe('DownloadService', function () {
 
     it('should be able to download files', function () {
         const response = 'Beam me up, Scotty!';
-        const expected = new Uint8Array(Buffer.from(response, 'utf-8')).buffer;
+        const expected = Buffer.from(response, 'utf-8');
         const path = '/foo';
 
         scope.get(path).reply(200, response);

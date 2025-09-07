@@ -28,7 +28,7 @@ export interface PhotoServiceInterface {
     getCriminalPhotos(id: number): Promise<CriminalPhoto[]>;
     getCriminalsToSync(after: number, count: number): Promise<number[]>;
     markCriminalSynced(id: number): PromiseLike<number>;
-    downloadPhoto(attID: number): Promise<[photo: ArrayBuffer, mime: string] | [photo: null, mime: null]>;
+    downloadPhoto(attID: number): Promise<[photo: Buffer, mime: string] | [photo: null, mime: null]>;
     downloadPhotoForFaceX(attID: number): Promise<Buffer | null>;
     getPhotoToSync(): Promise<SyncEntry | null>;
     setSyncStatus(id: number, success: boolean): PromiseLike<number>;

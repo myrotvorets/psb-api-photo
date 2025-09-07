@@ -2,7 +2,7 @@ import sharp, { type Metadata, type Sharp } from 'sharp';
 import type { ImageServiceInterface } from './imageserviceinterface.mjs';
 
 export class ImageService implements ImageServiceInterface {
-    public async toFaceXFormat(photo: ArrayBuffer): Promise<Buffer | null> {
+    public async toFaceXFormat(photo: Buffer): Promise<Buffer | null> {
         let img: Sharp;
         let metadata: Metadata;
 
@@ -15,8 +15,7 @@ export class ImageService implements ImageServiceInterface {
 
         const isJPEG = metadata.format === 'jpeg';
         const sf = metadata.chromaSubsampling;
-        const isProgressive = !!metadata.isProgressive;
-        const flag = !isJPEG || sf !== '4:2:0' || isProgressive;
+        const flag = !isJPEG || sf !== '4:2:0' || metadata.isProgressive;
         if (flag) {
             img.jpeg({
                 progressive: false,

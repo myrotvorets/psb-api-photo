@@ -14,11 +14,11 @@ export class DownloadService implements DownloadServiceInterface {
         private readonly fetch: FetchLike,
     ) {}
 
-    public async download(path: string): Promise<ArrayBuffer> {
+    public async download(path: string): Promise<Buffer> {
         const url = new URL(path, this.baseURL);
         const response = await this.fetch(url.href);
         if (response.ok) {
-            return response.arrayBuffer();
+            return Buffer.from(await response.arrayBuffer());
         }
 
         throw new HttpError(response.status, url);

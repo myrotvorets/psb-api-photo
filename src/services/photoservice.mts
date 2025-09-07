@@ -48,7 +48,7 @@ export class PhotoService implements PhotoServiceInterface {
         return this.syncModel.markCriminalSynced(id);
     }
 
-    public async downloadPhoto(attID: number): Promise<[ArrayBuffer, string] | [null, null]> {
+    public async downloadPhoto(attID: number): Promise<[Buffer, string] | [null, null]> {
         const entry = await this.criminalAttachmentModel.byAttachmentId(attID);
         return entry ? [await this.downloadService.download(entry.path), entry.mime_type] : [null, null];
     }
@@ -96,7 +96,7 @@ export class PhotoService implements PhotoServiceInterface {
 
         const map: Record<number, number> = {};
         for (const row of stats) {
-            map[row.flag] = +row.count;
+            map[row.flag] = row.count;
         }
 
         return {

@@ -1,4 +1,4 @@
 export interface DownloadServiceInterface {
     readonly baseURL: string;
-    download(path: string): Promise<ArrayBuffer>;
+    download(path: string): Promise<Buffer>;
 }
