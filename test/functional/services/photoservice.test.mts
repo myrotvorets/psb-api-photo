@@ -14,7 +14,7 @@ import { FakeDownloadService, downloadMock } from './fakedownloadservice.mjs';
 describe('PhotoService', function () {
     let baseURL: string;
     let db: Knex;
-    let httpResponse: ArrayBuffer;
+    let httpResponse: Buffer;
 
     before(async function () {
         await container.dispose();

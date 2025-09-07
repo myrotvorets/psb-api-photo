@@ -16,7 +16,7 @@ const files = [
 
 describe('ImageService', function () {
     describe('#toFaceXFormat', function () {
-        let buffers: ArrayBuffer[] = [];
+        let buffers: Buffer[] = [];
         let service: ImageService;
 
         before(async function () {
