@@ -29,7 +29,7 @@ services:
     working_dir: /usr/src/service
 
   mariadb:
-    image: mariadb:12@sha256:8a061ef9813cf960f94a262930a32b190c3fbe5c8d3ab58456ef1df4b90fd5dc
+    image: mariadb:12@sha256:03a03a6817bb9eaa21e5aed1b734d432ec3f80021f5a2de1795475f158217545
     environment:
       - MYSQL_ROOT_PASSWORD=password
       - MYSQL_ROOT_HOST=%
@@ -47,7 +47,7 @@ services:
     restart: always
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.135.0@sha256:89107a3a8f4636a396927edf7025bb9614b8da2d92f4cc3f43109e8d115736e2
+    image: otel/opentelemetry-collector-contrib:0.137.0@sha256:886722fe0f37af9d1fe24d29529253ec59fbf263b3b1df4facaf221373e19d23
     command:
       - "--config=/etc/otel-collector-config.yaml"
     depends_on:
@@ -65,7 +65,7 @@ services:
       - jaegerdata:/badger
 
   victoriametrics:
-    image: victoriametrics/victoria-metrics:v1.125.1@sha256:c49f21c0ebbd89a6ea6f7d2b7e93e5793212e9698f367de7512671294d6dbf0c
+    image: victoriametrics/victoria-metrics:v1.127.0@sha256:d6b6fed9b6d69741d0ac59baaafa5bb7f4ce0ee76f8cd78181f44c72b452d240
     command:
       - "--storageDataPath=/storage"
       - "--httpListenAddr=:8428"
@@ -80,7 +80,7 @@ services:
     restart: always
 
   grafana:
-    image: grafana/grafana:12.1.1@sha256:a1701c2180249361737a99a01bc770db39381640e4d631825d38ff4535efa47d
+    image: grafana/grafana:12.2.0@sha256:74144189b38447facf737dfd0f3906e42e0776212bf575dc3334c3609183adf7
     depends_on:
       - victoriametrics
       - loki
@@ -91,7 +91,7 @@ services:
       - ./.docker/grafana/dashboards/photos.json:/var/lib/grafana/dashboards/photos.json
 
   swagger:
-    image: swaggerapi/swagger-ui:v5.29.0@sha256:4fda0073bb5ab84b96ff5d94e3b602799c6935a07005e0fac9d7d3317b67ee20
+    image: swaggerapi/swagger-ui:v5.29.3@sha256:9c2688be89e275bbc80b85ffedf52883233cbd1ec4636faff3eb618b6420acf2
     environment:
       - SWAGGER_JSON_URL=/specs/photos.yaml
       - BASE_URL=/swagger

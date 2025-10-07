@@ -1,4 +1,4 @@
-FROM myrotvorets/node-build:latest@sha256:0114587605c08b2ee72604f32389645118214b67a519c458fd0d5d1a6e92284a AS build
+FROM myrotvorets/node-build:latest@sha256:307b79b29e08beccb1aab96fcd901a72c2164df1f8288963d1f435e6b43aab81 AS build
 USER root
 WORKDIR /srv/service
 RUN chown nobody:nobody /srv/service && apk add --no-cache vips-dev
@@ -13,7 +13,7 @@ COPY --chown=nobody:nobody ./src ./src
 RUN npm run build -- --declaration false --removeComments true --sourceMap false
 RUN npm prune --omit=dev
 
-FROM myrotvorets/node-min@sha256:5dd7ee28a59cd89ba8f37d0f303d61b180bb236d6a8e9d3f13eaaa7f51f627d7
+FROM myrotvorets/node-min@sha256:1da0d198cacf742eda78a086d54c1962922dfca83a0038208575a1b2bdcbcb39
 USER root
 WORKDIR /srv/service
 RUN chown nobody:nobody /srv/service && apk add --no-cache vips
