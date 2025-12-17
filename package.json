@@ -55,7 +55,7 @@
     "merge": "^2.1.1",
     "mocha": "~11.7.5",
     "mocha-multi": "^1.1.7",
-    "mocha-reporter-gha": "^1.1.1",
+    "mocha-reporter-gha": "^2.0.3",
     "mocha-reporter-sonarqube": "^2.1.1",
     "mock-knex": "^0.4.13",
     "nock": "^14.0.10",
