@@ -41,7 +41,7 @@ services:
       - mysqldata:/var/lib/mysql
 
   adminer:
-    image: adminer:latest@sha256:f379f91c9bdb207eef5103fed3760a2b6c119186a3e8b99d9cf51d0364d53ff4
+    image: adminer:latest@sha256:2fb88b98da9f0ae0157d8fcb73f447a0747b09ee8d2ff8a8e0695b30afed2116
     environment:
       - ADMINER_DEFAULT_SERVER=mariadb
     restart: always
