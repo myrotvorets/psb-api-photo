@@ -74,7 +74,7 @@ services:
       - vmdata:/storage
 
   loki:
-    image: grafana/loki:3.6.4@sha256:be31579ac047e9f78b81e48f3b69d3af709e7299b431d5aa78bcda43382f9511
+    image: grafana/loki:3.6.6@sha256:434c7effbd66dbf69c2665fe4b2125549ecf7b45039ac28595d4034031cf47ce
     command:
       - "-config.file=/etc/loki/local-config.yaml"
     restart: always
