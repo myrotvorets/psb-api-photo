@@ -91,7 +91,7 @@ services:
       - ./.docker/grafana/dashboards/photos.json:/var/lib/grafana/dashboards/photos.json
 
   swagger:
-    image: swaggerapi/swagger-ui:v5.32.0@sha256:641afb45f0f14167da03659c220eff40c5aab231337ed2bad494802737d4e2ae
+    image: swaggerapi/swagger-ui:v5.32.11@sha256:e43eb34b978af58d8cb78e5da9c12d605cf43d113ad3a96b18f9b028d6479d68
     environment:
       - SWAGGER_JSON_URL=/specs/photos.yaml
       - BASE_URL=/swagger
