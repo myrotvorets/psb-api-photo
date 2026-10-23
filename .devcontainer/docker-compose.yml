@@ -47,7 +47,7 @@ services:
     restart: always
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.144.0@sha256:213886eb6407af91b87fa47551c3632be1a6419ff3a5114ef1e6fc364628496f
+    image: otel/opentelemetry-collector-contrib:0.163.2@sha256:7f22d2a6748110ffb6a59bc0df448bccbf501cdb667d610ede4c61d3863d5849
     command:
       - "--config=/etc/otel-collector-config.yaml"
     depends_on:
